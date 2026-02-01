@@ -73,6 +73,15 @@ class ProfileResponse(BaseModel):
         from_attributes = True
 
 
+class ProfileUpdate(BaseModel):
+    """Schema for updating student profile. All fields optional."""
+    full_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    cgpa: Optional[float] = Field(None, ge=0, le=10)
+    branch: Optional[str] = Field(None, min_length=1, max_length=100)
+    resume_url: Optional[str] = Field(None, max_length=500)
+
+
 class UserWithProfile(UserBase):
     """User with optional profile (for students)."""
     profile: Optional[ProfileResponse] = None
+
