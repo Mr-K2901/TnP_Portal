@@ -78,3 +78,67 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+
+# =============================================================================
+# FASTAPI DEPENDENCIES (Route Protection)
+# =============================================================================
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+
+# This extracts the token from "Authorization: Bearer <token>" header
+bearer_scheme = HTTPBearer()
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(lambda: None)  # Placeholder - will be injected properly
+) -> dict:
+    """
+    Dependency that validates JWT and returns the token payload.
+    
+    Usage:
+        @app.get("/protected")
+        def protected_route(current_user: dict = Depends(get_current_user)):
+            user_id = current_user["sub"]
+            role = current_user["role"]
+    
+    Raises 401 if token is invalid or expired.
+    """
+    token = credentials.credentials
+    payload = decode_access_token(token)
+    
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    return payload
+
+
+def require_role(required_role: str):
+    """
+    Factory function that creates a role-checking dependency.
+    
+    Usage:
+        @app.get("/admin-only")
+        def admin_route(current_user: dict = Depends(require_role("ADMIN"))):
+            ...
+    """
+    def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
+        if current_user.get("role") != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Requires {required_role} role."
+            )
+        return current_user
+    return role_checker
+
+
+# Convenience dependencies for common role checks
+require_student = require_role("STUDENT")
+require_admin = require_role("ADMIN")

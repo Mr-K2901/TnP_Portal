@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import User, Profile
 from app.schemas.user import UserRegister, UserLogin, Token, UserWithProfile
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, get_current_user as get_current_user_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -105,15 +105,26 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserWithProfile)
-def get_current_user(db: Session = Depends(get_db)):
+def get_me(
+    current_user: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
     """
-    Get current user info.
+    Get current authenticated user's info.
     
-    NOTE: This endpoint requires authentication middleware.
-    TODO: Add Depends(get_current_user) after implementing auth dependency.
+    Requires: Authorization header with Bearer token
+    
+    Returns: User data with profile (if student)
     """
-    # Placeholder - will be implemented with auth dependency
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Auth dependency not yet implemented"
-    )
+    user_id = current_user["sub"]
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user
+
