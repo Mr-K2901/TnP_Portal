@@ -17,4 +17,10 @@ This project is being built incrementally with a strong backend foundation and c
 ---
 
 ##  Project Structure
+- tnp-portal/
+    ├── backend/ # FastAPI backend (Python)
+    ├── frontend/ # Frontend (to be implemented)
+    ├── README.md
+    └── .gitignore
+
 
