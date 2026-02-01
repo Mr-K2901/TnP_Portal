@@ -31,6 +31,7 @@ export default function StudentApplicationsPage() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
     useEffect(() => {
         // Auth check
@@ -55,6 +56,25 @@ export default function StudentApplicationsPage() {
             setError(err instanceof Error ? err.message : 'Failed to fetch applications');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleWithdraw = async (applicationId: string) => {
+        if (!confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
+            return;
+        }
+
+        setWithdrawingId(applicationId);
+        try {
+            await api.patch(`/applications/${applicationId}/withdraw`, {});
+            // Update local state
+            setApplications(prev => prev.map(app =>
+                app.id === applicationId ? { ...app, status: 'REJECTED' as const } : app
+            ));
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to withdraw application');
+        } finally {
+            setWithdrawingId(null);
         }
     };
 
@@ -89,7 +109,7 @@ export default function StudentApplicationsPage() {
     }
 
     return (
-        <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1>My Applications</h1>
                 <div>
@@ -118,6 +138,7 @@ export default function StudentApplicationsPage() {
                             <th style={{ padding: '10px' }}>Role</th>
                             <th style={{ padding: '10px' }}>Applied On</th>
                             <th style={{ padding: '10px' }}>Status</th>
+                            <th style={{ padding: '10px' }}>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,6 +160,26 @@ export default function StudentApplicationsPage() {
                                     }}>
                                         {app.status}
                                     </span>
+                                </td>
+                                <td style={{ padding: '10px' }}>
+                                    {app.status === 'APPLIED' ? (
+                                        <button
+                                            onClick={() => handleWithdraw(app.id)}
+                                            disabled={withdrawingId === app.id}
+                                            style={{
+                                                padding: '5px 10px',
+                                                backgroundColor: withdrawingId === app.id ? '#ccc' : '#dc3545',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
+                                            }}
+                                        >
+                                            {withdrawingId === app.id ? 'Withdrawing...' : 'Withdraw'}
+                                        </button>
+                                    ) : (
+                                        <span style={{ color: '#999' }}>-</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}

@@ -23,12 +23,17 @@ interface JobListResponse {
     limit: number;
 }
 
+interface ApplicationStatus {
+    job_id: string;
+    status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED';
+}
+
 export default function StudentDashboardPage() {
     const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
+    const [applicationStatus, setApplicationStatus] = useState<Map<string, string>>(new Map());
     const [applyingTo, setApplyingTo] = useState<string | null>(null);
 
     useEffect(() => {
@@ -44,7 +49,7 @@ export default function StudentDashboardPage() {
 
         // Fetch jobs
         fetchJobs();
-        // Fetch existing applications to know which jobs are already applied
+        // Fetch existing applications with status
         fetchMyApplications();
     }, [router]);
 
@@ -61,9 +66,12 @@ export default function StudentDashboardPage() {
 
     const fetchMyApplications = async () => {
         try {
-            const response = await api.get<{ applications: { job_id: string }[] }>('/applications');
-            const appliedIds = new Set(response.applications.map(app => app.job_id));
-            setAppliedJobs(appliedIds);
+            const response = await api.get<{ applications: ApplicationStatus[] }>('/applications');
+            const statusMap = new Map<string, string>();
+            response.applications.forEach(app => {
+                statusMap.set(app.job_id, app.status);
+            });
+            setApplicationStatus(statusMap);
         } catch {
             // Ignore - user may not have any applications
         }
@@ -73,7 +81,7 @@ export default function StudentDashboardPage() {
         setApplyingTo(jobId);
         try {
             await api.post('/applications', { job_id: jobId });
-            setAppliedJobs(prev => new Set([...prev, jobId]));
+            setApplicationStatus(prev => new Map(prev).set(jobId, 'APPLIED'));
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to apply');
         } finally {
@@ -84,6 +92,22 @@ export default function StudentDashboardPage() {
     const handleLogout = () => {
         removeToken();
         router.push('/login');
+    };
+
+    const getStatusDisplay = (jobId: string) => {
+        const status = applicationStatus.get(jobId);
+        if (!status) return null;
+
+        switch (status) {
+            case 'APPLIED':
+                return <span style={{ color: 'green' }}>✓ Applied</span>;
+            case 'SHORTLISTED':
+                return <span style={{ color: '#0070f3', fontWeight: 'bold' }}>⭐ Shortlisted</span>;
+            case 'REJECTED':
+                return <span style={{ color: 'red' }}>✗ Rejected</span>;
+            default:
+                return <span style={{ color: '#666' }}>{status}</span>;
+        }
     };
 
     if (loading) {
@@ -120,7 +144,7 @@ export default function StudentDashboardPage() {
                             <th style={{ padding: '10px' }}>Role</th>
                             <th style={{ padding: '10px' }}>CTC</th>
                             <th style={{ padding: '10px' }}>Min CGPA</th>
-                            <th style={{ padding: '10px' }}>Action</th>
+                            <th style={{ padding: '10px' }}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -131,8 +155,8 @@ export default function StudentDashboardPage() {
                                 <td style={{ padding: '10px' }}>{job.ctc || '-'}</td>
                                 <td style={{ padding: '10px' }}>{job.min_cgpa}</td>
                                 <td style={{ padding: '10px' }}>
-                                    {appliedJobs.has(job.id) ? (
-                                        <span style={{ color: 'green' }}>✓ Applied</span>
+                                    {applicationStatus.has(job.id) ? (
+                                        getStatusDisplay(job.id)
                                     ) : (
                                         <button
                                             onClick={() => handleApply(job.id)}

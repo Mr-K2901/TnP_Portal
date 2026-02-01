@@ -158,6 +158,59 @@ def get_my_application(
     return application
 
 
+@router.patch("/{application_id}/withdraw", response_model=ApplicationResponse)
+def withdraw_application(
+    application_id: UUID,
+    current_user: dict = Depends(require_student),
+    db: Session = Depends(get_db)
+):
+    """
+    Withdraw an application.
+    
+    Requires: STUDENT role
+    Rules:
+        - Can only withdraw own applications
+        - Can only withdraw if status == APPLIED
+    
+    Sets status to REJECTED.
+    """
+    student_id = current_user["sub"]
+    
+    application = (
+        db.query(Application)
+        .options(joinedload(Application.job))
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found"
+        )
+    
+    # Ensure student owns this application
+    if str(application.student_id) != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only withdraw your own applications"
+        )
+    
+    # Can only withdraw if status is APPLIED
+    if application.status != "APPLIED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot withdraw application with status {application.status}. Only APPLIED applications can be withdrawn."
+        )
+    
+    # Update status to REJECTED
+    application.status = "REJECTED"
+    db.commit()
+    db.refresh(application)
+    
+    return application
+
+
 # =============================================================================
 # ADMIN ENDPOINTS
 # =============================================================================
