@@ -53,7 +53,7 @@ export default function AdminJobsPage() {
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
+    const [pageSize, setPageSize] = useState(10);
 
     // Form state
     const [showForm, setShowForm] = useState(false);

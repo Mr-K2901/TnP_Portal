@@ -59,7 +59,7 @@ export default function AdminStudentsPage() {
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         if (!isLoggedIn()) {

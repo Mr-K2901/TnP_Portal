@@ -41,6 +41,23 @@ interface ProfileResponse {
     is_placed: boolean;
 }
 
+// Modern color palette
+const colors = {
+    primary: '#4f46e5',
+    primaryHover: '#4338ca',
+    secondary: '#64748b',
+    success: '#10b981',
+    danger: '#ef4444',
+    warning: '#f59e0b',
+    info: '#0ea5e9',
+    background: '#f8fafc',
+    card: '#ffffff',
+    border: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    headerBg: '#1e293b',
+};
+
 export default function StudentDashboardPage() {
     const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -50,11 +67,9 @@ export default function StudentDashboardPage() {
     const [applyingTo, setApplyingTo] = useState<string | null>(null);
     const [isPlaced, setIsPlaced] = useState(false);
     const [profileName, setProfileName] = useState('');
-    const [placementCompany, setPlacementCompany] = useState('');
     const [studentCgpa, setStudentCgpa] = useState<number | null>(null);
 
     useEffect(() => {
-        // Auth check
         if (!isLoggedIn()) {
             router.push('/login');
             return;
@@ -63,8 +78,6 @@ export default function StudentDashboardPage() {
             router.push('/login');
             return;
         }
-
-        // Fetch data
         fetchProfile();
         fetchJobs();
         fetchMyApplications();
@@ -77,7 +90,6 @@ export default function StudentDashboardPage() {
             setProfileName(response.full_name);
             setStudentCgpa(response.cgpa);
         } catch {
-            // Profile may not exist - CGPA stays null
             setStudentCgpa(null);
         }
     };
@@ -101,14 +113,8 @@ export default function StudentDashboardPage() {
                 statusMap.set(app.job_id, app.status);
             });
             setApplicationStatus(statusMap);
-
-            // Find the SHORTLISTED application to get placement company
-            const placedApp = response.applications.find(app => app.status === 'SHORTLISTED');
-            if (placedApp && placedApp.job) {
-                setPlacementCompany(placedApp.job.company_name);
-            }
         } catch {
-            // Ignore - user may not have any applications
+            // Ignore
         }
     };
 
@@ -134,75 +140,66 @@ export default function StudentDashboardPage() {
         return studentCgpa >= job.min_cgpa;
     };
 
+    const getStatusBadge = (status: string) => {
+        const styles: Record<string, { bg: string; color: string; label: string }> = {
+            'APPLIED': { bg: '#dbeafe', color: '#1e40af', label: 'Applied' },
+            'SHORTLISTED': { bg: '#dcfce7', color: '#166534', label: 'Shortlisted' },
+            'REJECTED': { bg: '#fef2f2', color: '#991b1b', label: 'Rejected' },
+        };
+        const style = styles[status] || { bg: '#f1f5f9', color: '#475569', label: status };
+        return (
+            <span style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                backgroundColor: style.bg,
+                color: style.color,
+                fontWeight: 600,
+                fontSize: '13px',
+                letterSpacing: '0.3px',
+            }}>
+                {style.label}
+            </span>
+        );
+    };
+
     const getActionCell = (job: Job) => {
         const status = applicationStatus.get(job.id);
 
-        // Already applied - show status
         if (status) {
-            switch (status) {
-                case 'APPLIED':
-                    return <span style={{ color: 'green' }}>✓ Applied</span>;
-                case 'SHORTLISTED':
-                    return (
-                        <span style={{
-                            background: 'linear-gradient(90deg, #28a745, #20c997)',
-                            color: 'white',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontWeight: 'bold',
-                            fontSize: '13px',
-                        }}>
-                            ⭐ Shortlisted
-                        </span>
-                    );
-                case 'REJECTED':
-                    return <span style={{ color: 'red' }}>✗ Rejected</span>;
-                default:
-                    return <span style={{ color: '#666' }}>{status}</span>;
-            }
+            return getStatusBadge(status);
         }
 
-        // Not applied yet - check eligibility
         if (!isEligible(job)) {
             return (
                 <div>
-                    <button
-                        disabled
-                        style={{
-                            padding: '5px 12px',
-                            backgroundColor: '#e9ecef',
-                            color: '#6c757d',
-                            border: '1px solid #ced4da',
-                            borderRadius: '4px',
-                            cursor: 'not-allowed',
-                            fontSize: '16px',
-                        }}
-                    >
-                        Not Eligible
-                    </button>
-                    <div style={{
-                        fontSize: '15px',
-                        color: '#dc3545',
-                        marginTop: '4px'
+                    <span style={{
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        fontSize: '13px',
+                        fontWeight: 500,
                     }}>
-                        Requires CGPA ≥ {job.min_cgpa}
-                    </div>
+                        Not Eligible
+                    </span>
                 </div>
             );
         }
 
-        // Eligible - show Apply button
         return (
             <button
                 onClick={() => handleApply(job.id)}
                 disabled={applyingTo === job.id}
                 style={{
-                    padding: '5px 15px',
-                    backgroundColor: applyingTo === job.id ? '#ccc' : '#0070f3',
-                    color: 'white',
+                    padding: '10px 24px',
+                    backgroundColor: applyingTo === job.id ? '#e2e8f0' : colors.primary,
+                    color: applyingTo === job.id ? colors.textMuted : 'white',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     cursor: applyingTo === job.id ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    minWidth: '110px',
                 }}
             >
                 {applyingTo === job.id ? 'Applying...' : 'Apply'}
@@ -211,102 +208,119 @@ export default function StudentDashboardPage() {
     };
 
     if (loading) {
-        return <div style={{ padding: '40px' }}>Loading jobs...</div>;
+        return (
+            <div style={{ minHeight: '100vh', backgroundColor: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
+                Loading jobs...
+            </div>
+        );
     }
 
     return (
-        <div style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1>Available Jobs</h1>
-                <div>
-                    <a href="/student/applications" style={{ marginRight: '20px' }}>
-                        My Applications
-                    </a>
-                    <button onClick={handleLogout} style={{ cursor: 'pointer' }}>
-                        Logout
-                    </button>
+        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
+            {/* Header */}
+            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
+                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                        <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
+                        <a href="/student/dashboard" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Browse Jobs</a>
+                        <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
+                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
+                    </nav>
                 </div>
-            </div>
+            </header>
 
-            {/* CGPA Info Banner */}
-            {studentCgpa !== null && (
-                <div style={{
-                    backgroundColor: '#e7f3ff',
-                    padding: '10px 15px',
-                    borderRadius: '6px',
-                    marginBottom: '20px',
-                    fontSize: '14px',
-                    borderLeft: '4px solid #0070f3'
-                }}>
-                    Your CGPA: <strong>{studentCgpa.toFixed(2)}</strong>
+            {/* Main Content */}
+            <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ margin: 0, fontSize: '24px', color: colors.text, fontWeight: 600 }}>Browse Jobs</h2>
+                    {studentCgpa !== null && (
+                        <div style={{
+                            backgroundColor: '#eef2ff',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            fontSize: '14px',
+                            color: colors.primary,
+                            fontWeight: 500
+                        }}>
+                            Your CGPA: {studentCgpa.toFixed(2)}
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {studentCgpa === null && (
-                <div style={{
-                    backgroundColor: '#fff3cd',
-                    padding: '10px 15px',
-                    borderRadius: '6px',
-                    marginBottom: '20px',
-                    fontSize: '14px',
-                    borderLeft: '4px solid #ffc107'
-                }}>
-                    ⚠️ Please complete your profile with CGPA to apply for jobs.
-                </div>
-            )}
+                {studentCgpa === null && (
+                    <div style={{
+                        backgroundColor: '#fef3c7',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        marginBottom: '24px',
+                        fontSize: '14px',
+                        borderLeft: `4px solid ${colors.warning}`,
+                        color: '#92400e'
+                    }}>
+                        ⚠️ Please complete your profile with CGPA to apply for jobs.
+                    </div>
+                )}
 
-            {error && (
-                <div style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#ffe6e6' }}>
-                    {error}
-                </div>
-            )}
+                {error && (
+                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fecaca' }}>
+                        {error}
+                    </div>
+                )}
 
-            {jobs.length === 0 ? (
-                <p>No jobs available at the moment.</p>
-            ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #ccc', textAlign: 'left' }}>
-                            <th style={{ padding: '10px' }}>Company</th>
-                            <th style={{ padding: '10px' }}>Role</th>
-                            <th style={{ padding: '10px' }}>CTC</th>
-                            <th style={{ padding: '10px' }}>Min CGPA</th>
-                            <th style={{ padding: '10px' }}>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {jobs.map(job => {
-                            const eligible = isEligible(job);
-                            const hasApplied = applicationStatus.has(job.id);
-
-                            return (
-                                <tr
-                                    key={job.id}
-                                    style={{
-                                        borderBottom: '1px solid #eee',
-                                        backgroundColor: !eligible && !hasApplied ? '#fafafa' : 'transparent',
-                                    }}
-                                >
-                                    <td style={{ padding: '10px' }}>{job.company_name}</td>
-                                    <td style={{ padding: '10px' }}>{job.role}</td>
-                                    <td style={{ padding: '10px' }}>{job.ctc || '-'}</td>
-                                    <td style={{
-                                        padding: '10px',
-                                        color: !eligible && !hasApplied ? '#dc3545' : 'inherit',
-                                        fontWeight: !eligible && !hasApplied ? 'bold' : 'normal'
-                                    }}>
-                                        {job.min_cgpa}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {getActionCell(job)}
-                                    </td>
+                {/* Jobs Table */}
+                <div style={{ backgroundColor: colors.card, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                    {jobs.length === 0 ? (
+                        <p style={{ padding: '40px', textAlign: 'center', color: colors.textMuted, margin: 0 }}>No jobs available at the moment.</p>
+                    ) : (
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>CTC</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Min CGPA</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Action</th>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            )}
+                            </thead>
+                            <tbody>
+                                {jobs.map((job, idx) => {
+                                    const eligible = isEligible(job);
+                                    const hasApplied = applicationStatus.has(job.id);
+                                    return (
+                                        <tr
+                                            key={job.id}
+                                            style={{
+                                                backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa',
+                                                opacity: !eligible && !hasApplied ? 0.7 : 1
+                                            }}
+                                        >
+                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>{job.company_name}</td>
+                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{job.role}</td>
+                                            <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{job.ctc || '-'}</td>
+                                            <td style={{
+                                                padding: '16px 20px',
+                                                fontSize: '16px',
+                                                fontWeight: !eligible && !hasApplied ? 600 : 400,
+                                                color: !eligible && !hasApplied ? colors.danger : colors.textMuted,
+                                                borderBottom: `1px solid ${colors.border}`
+                                            }}>
+                                                {job.min_cgpa}
+                                            </td>
+                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                {getActionCell(job)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    )}
+                    <div style={{ padding: '16px', borderTop: `1px solid ${colors.border}`, color: colors.textMuted, fontSize: '14px' }}>
+                        Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }

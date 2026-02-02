@@ -35,6 +35,23 @@ interface ProfileResponse {
     is_placed: boolean;
 }
 
+// Modern color palette
+const colors = {
+    primary: '#4f46e5',
+    primaryHover: '#4338ca',
+    secondary: '#64748b',
+    success: '#10b981',
+    danger: '#ef4444',
+    warning: '#f59e0b',
+    info: '#0ea5e9',
+    background: '#f8fafc',
+    card: '#ffffff',
+    border: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    headerBg: '#1e293b',
+};
+
 export default function StudentApplicationsPage() {
     const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
@@ -42,12 +59,10 @@ export default function StudentApplicationsPage() {
     const [error, setError] = useState('');
     const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
     const [isPlaced, setIsPlaced] = useState(false);
-    const [profileName, setProfileName] = useState('');
     const [placementCompany, setPlacementCompany] = useState('');
     const [placedApplicationId, setPlacedApplicationId] = useState<string | null>(null);
 
     useEffect(() => {
-        // Auth check
         if (!isLoggedIn()) {
             router.push('/login');
             return;
@@ -56,8 +71,6 @@ export default function StudentApplicationsPage() {
             router.push('/login');
             return;
         }
-
-        // Fetch data
         fetchProfile();
         fetchApplications();
     }, [router]);
@@ -66,9 +79,8 @@ export default function StudentApplicationsPage() {
         try {
             const response = await api.get<ProfileResponse>('/users/me/profile');
             setIsPlaced(response.is_placed);
-            setProfileName(response.full_name);
         } catch {
-            // Ignore - profile may not exist
+            // Ignore
         }
     };
 
@@ -76,8 +88,6 @@ export default function StudentApplicationsPage() {
         try {
             const response = await api.get<ApplicationListResponse>('/applications');
             setApplications(response.applications);
-
-            // Find the SHORTLISTED application (the one that led to placement)
             const placedApp = response.applications.find(app => app.status === 'SHORTLISTED');
             if (placedApp && placedApp.job) {
                 setPlacementCompany(placedApp.job.company_name);
@@ -91,19 +101,15 @@ export default function StudentApplicationsPage() {
     };
 
     const handleWithdraw = async (applicationId: string) => {
-        if (!confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
-            return;
-        }
-
+        if (!confirm('Are you sure you want to withdraw this application?')) return;
         setWithdrawingId(applicationId);
         try {
             await api.patch(`/applications/${applicationId}/withdraw`, {});
-            // Update local state
             setApplications(prev => prev.map(app =>
                 app.id === applicationId ? { ...app, status: 'REJECTED' as const } : app
             ));
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to withdraw application');
+            alert(err instanceof Error ? err.message : 'Failed to withdraw');
         } finally {
             setWithdrawingId(null);
         }
@@ -114,36 +120,6 @@ export default function StudentApplicationsPage() {
         router.push('/login');
     };
 
-    const getStatusDisplay = (app: Application) => {
-        // Special display for the application that led to placement
-        if (isPlaced && app.id === placedApplicationId && app.status === 'SHORTLISTED') {
-            return (
-                <span style={{
-                    background: 'linear-gradient(90deg, #28a745, #20c997)',
-                    color: 'white',
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                }}>
-                    Placed ({placementCompany || 'Company'})
-                </span>
-            );
-        }
-
-        // Regular status display
-        switch (app.status) {
-            case 'APPLIED':
-                return <span style={{ color: '#666', fontWeight: 'bold' }}>APPLIED</span>;
-            case 'SHORTLISTED':
-                return <span style={{ color: 'green', fontWeight: 'bold' }}>SHORTLISTED</span>;
-            case 'REJECTED':
-                return <span style={{ color: 'red', fontWeight: 'bold' }}>REJECTED</span>;
-            default:
-                return <span style={{ color: '#666' }}>{app.status}</span>;
-        }
-    };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-IN', {
             year: 'numeric',
@@ -152,98 +128,158 @@ export default function StudentApplicationsPage() {
         });
     };
 
+    const getStatusBadge = (app: Application) => {
+        if (isPlaced && app.id === placedApplicationId && app.status === 'SHORTLISTED') {
+            return (
+                <span style={{
+                    backgroundColor: '#059669',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    letterSpacing: '0.3px',
+                }}>
+                    PLACED
+                </span>
+            );
+        }
+
+        const styles: Record<string, { bg: string; color: string; label: string }> = {
+            'APPLIED': { bg: '#fef3c7', color: '#92400e', label: 'PENDING' },
+            'SHORTLISTED': { bg: '#dcfce7', color: '#166534', label: 'SHORTLISTED' },
+            'REJECTED': { bg: '#fef2f2', color: '#991b1b', label: 'REJECTED' },
+        };
+        const style = styles[app.status] || { bg: '#f1f5f9', color: '#475569', label: app.status };
+        return (
+            <span style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                backgroundColor: style.bg,
+                color: style.color,
+                fontWeight: 600,
+                fontSize: '13px',
+                letterSpacing: '0.3px',
+            }}>
+                {style.label}
+            </span>
+        );
+    };
+
     if (loading) {
-        return <div style={{ padding: '40px' }}>Loading applications...</div>;
+        return (
+            <div style={{ minHeight: '100vh', backgroundColor: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
+                Loading applications...
+            </div>
+        );
     }
 
+    // Stats
+    const appliedCount = applications.filter(a => a.status === 'APPLIED').length;
+    const shortlistedCount = applications.filter(a => a.status === 'SHORTLISTED').length;
+    const rejectedCount = applications.filter(a => a.status === 'REJECTED').length;
+
     return (
-        <div style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1>My Applications</h1>
-                <div>
-                    <a href="/student/dashboard" style={{ marginRight: '20px' }}>
-                        Browse Jobs
-                    </a>
-                    <button onClick={handleLogout} style={{ cursor: 'pointer' }}>
-                        Logout
-                    </button>
+        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
+            {/* Header */}
+            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
+                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                        <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
+                        <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
+                        <a href="/student/applications" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>My Applications</a>
+                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
+                    </nav>
                 </div>
-            </div>
+            </header>
 
-            {error && (
-                <div style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#ffe6e6' }}>
-                    {error}
+            {/* Main Content */}
+            <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+                <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: colors.text, fontWeight: 600 }}>My Applications</h2>
+
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.warning }}>{appliedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Pending</div>
+                    </div>
+                    <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.success }}>{shortlistedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Shortlisted</div>
+                    </div>
+                    <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.danger }}>{rejectedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Rejected</div>
+                    </div>
                 </div>
-            )}
 
-            {applications.length === 0 ? (
-                <p>You haven't applied to any jobs yet. <a href="/student/dashboard">Browse jobs</a></p>
-            ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #ccc', textAlign: 'left' }}>
-                            <th style={{ padding: '10px' }}>Company</th>
-                            <th style={{ padding: '10px' }}>Role</th>
-                            <th style={{ padding: '10px' }}>Applied On</th>
-                            <th style={{ padding: '10px' }}>Status</th>
-                            <th style={{ padding: '10px' }}>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {applications.map(app => {
-                            const isPlacedRow = isPlaced && app.id === placedApplicationId;
+                {error && (
+                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fecaca' }}>
+                        {error}
+                    </div>
+                )}
 
-                            return (
-                                <tr
-                                    key={app.id}
-                                    style={{
-                                        borderBottom: '1px solid #eee',
-                                        backgroundColor: isPlacedRow ? '#f0fff4' : 'transparent'
-                                    }}
-                                >
-                                    <td style={{ padding: '10px' }}>
-                                        {app.job?.company_name || 'Unknown'}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {app.job?.role || 'Unknown'}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {formatDate(app.applied_at)}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {getStatusDisplay(app)}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {app.status === 'APPLIED' ? (
-                                            <button
-                                                onClick={() => handleWithdraw(app.id)}
-                                                disabled={withdrawingId === app.id}
-                                                style={{
-                                                    padding: '5px 10px',
-                                                    backgroundColor: withdrawingId === app.id ? '#ccc' : '#dc3545',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '4px',
-                                                    cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
-                                                }}
-                                            >
-                                                {withdrawingId === app.id ? 'Withdrawing...' : 'Withdraw'}
-                                            </button>
-                                        ) : (
-                                            <span style={{ color: '#999' }}>-</span>
-                                        )}
-                                    </td>
+                {/* Applications Table */}
+                <div style={{ backgroundColor: colors.card, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                    {applications.length === 0 ? (
+                        <div style={{ padding: '40px', textAlign: 'center' }}>
+                            <p style={{ color: colors.textMuted, margin: 0 }}>You haven't applied to any jobs yet.</p>
+                            <a href="/student/dashboard" style={{ color: colors.primary, marginTop: '8px', display: 'inline-block' }}>Browse Jobs →</a>
+                        </div>
+                    ) : (
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Action</th>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            )}
-
-            <p style={{ marginTop: '20px', color: '#666' }}>
-                Total applications: {applications.length}
-            </p>
-        </div>
+                            </thead>
+                            <tbody>
+                                {applications.map((app, idx) => {
+                                    const isPlacedRow = isPlaced && app.id === placedApplicationId;
+                                    return (
+                                        <tr key={app.id} style={{ backgroundColor: isPlacedRow ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>{app.job?.company_name || 'Unknown'}</td>
+                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{app.job?.role || 'Unknown'}</td>
+                                            <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{formatDate(app.applied_at)}</td>
+                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>{getStatusBadge(app)}</td>
+                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                {app.status === 'APPLIED' ? (
+                                                    <button
+                                                        onClick={() => handleWithdraw(app.id)}
+                                                        disabled={withdrawingId === app.id}
+                                                        style={{
+                                                            padding: '8px 16px',
+                                                            backgroundColor: withdrawingId === app.id ? '#f1f5f9' : '#fef2f2',
+                                                            color: withdrawingId === app.id ? '#94a3b8' : colors.danger,
+                                                            border: 'none',
+                                                            borderRadius: '6px',
+                                                            cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
+                                                            fontSize: '14px',
+                                                            fontWeight: 500
+                                                        }}
+                                                    >
+                                                        {withdrawingId === app.id ? '...' : 'Withdraw'}
+                                                    </button>
+                                                ) : (
+                                                    <span style={{ color: '#cbd5e1' }}>—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    )}
+                    <div style={{ padding: '16px', borderTop: `1px solid ${colors.border}`, color: colors.textMuted, fontSize: '14px' }}>
+                        Total: {applications.length} application{applications.length !== 1 ? 's' : ''}
+                    </div>
+                </div>
+            </main >
+        </div >
     );
 }
