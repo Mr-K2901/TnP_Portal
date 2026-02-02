@@ -123,19 +123,14 @@ def list_jobs(
     List job postings.
     
     - ADMIN: Sees all jobs (can toggle active_only)
-    - STUDENT: Sees only active jobs where min_cgpa <= their CGPA
+    - STUDENT: Sees all active jobs (CGPA check only at apply time)
     """
     query = db.query(Job)
     
     # Role-based filtering
     if current_user["role"] == "STUDENT":
-        # Get student's CGPA from profile
-        profile = db.query(Profile).filter(Profile.user_id == current_user["sub"]).first()
-        student_cgpa = profile.cgpa if profile and profile.cgpa else 0
-        
-        # Students only see active jobs they're eligible for
+        # Students see all active jobs (CGPA eligibility checked at apply time)
         query = query.filter(Job.is_active == True)
-        query = query.filter(Job.min_cgpa <= student_cgpa)
     else:
         # Admin can filter by active status
         if active_only:
@@ -165,7 +160,7 @@ def get_job(
     Get a single job by ID.
     
     - ADMIN: Can view any job
-    - STUDENT: Can only view active jobs they're eligible for
+    - STUDENT: Can view any active job (CGPA check only at apply time)
     """
     job = db.query(Job).filter(Job.id == job_id).first()
     
@@ -175,22 +170,13 @@ def get_job(
             detail="Job not found"
         )
     
-    # Students can only view active, eligible jobs
+    # Students can only view active jobs
     if current_user["role"] == "STUDENT":
         if not job.is_active:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found"
             )
-        
-        # Check CGPA eligibility
-        profile = db.query(Profile).filter(Profile.user_id == current_user["sub"]).first()
-        student_cgpa = profile.cgpa if profile and profile.cgpa else 0
-        
-        if job.min_cgpa > student_cgpa:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not eligible for this job (CGPA requirement not met)"
-            )
     
     return job
+

@@ -40,8 +40,11 @@ def apply_to_job(
     Requires: STUDENT role
     Rules:
         - Job must be active
+        - Student CGPA must meet job's min_cgpa requirement
         - One application per student per job
     """
+    from app.db.models import Profile
+    
     student_id = current_user["sub"]
     
     # Check if job exists and is active
@@ -57,6 +60,34 @@ def apply_to_job(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot apply to inactive job"
+        )
+    
+    # Check CGPA eligibility
+    profile = db.query(Profile).filter(Profile.user_id == student_id).first()
+    
+    if not profile:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please complete your profile before applying"
+        )
+    
+    # Check if student is already placed
+    if profile.is_placed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are already placed and cannot apply to new jobs."
+        )
+    
+    if profile.cgpa is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please update your CGPA in your profile before applying"
+        )
+    
+    if profile.cgpa < job.min_cgpa:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not meet the CGPA requirement for this job."
         )
     
     # Create application
