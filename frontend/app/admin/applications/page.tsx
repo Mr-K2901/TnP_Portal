@@ -47,7 +47,8 @@ export default function AdminApplicationsPage() {
     const [loading, setLoading] = useState(true);
     const [loadingApps, setLoadingApps] = useState(false);
     const [error, setError] = useState('');
-    const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+    const [placedStudents, setPlacedStudents] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -73,7 +74,6 @@ export default function AdminApplicationsPage() {
         try {
             const response = await api.get<JobListResponse>('/jobs?active_only=false');
             setJobs(response.jobs);
-            // Auto-select first job if none preselected
             if (!preselectedJobId && response.jobs.length > 0) {
                 setSelectedJobId(response.jobs[0].id);
             }
@@ -96,17 +96,52 @@ export default function AdminApplicationsPage() {
         }
     };
 
-    const handleStatusChange = async (applicationId: string, newStatus: string) => {
-        setUpdatingId(applicationId);
+    // Shortlist: APPLIED → SHORTLISTED
+    const handleShortlist = async (applicationId: string) => {
+        setActionInProgress(applicationId);
         try {
-            await api.patch(`/applications/${applicationId}/status`, { status: newStatus });
+            await api.patch(`/applications/${applicationId}/status`, { status: 'SHORTLISTED' });
             setApplications(prev => prev.map(app =>
-                app.id === applicationId ? { ...app, status: newStatus as Application['status'] } : app
+                app.id === applicationId ? { ...app, status: 'SHORTLISTED' as const } : app
             ));
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to update status');
+            alert(err instanceof Error ? err.message : 'Failed to shortlist');
         } finally {
-            setUpdatingId(null);
+            setActionInProgress(null);
+        }
+    };
+
+    // Reject: Any status → REJECTED
+    const handleReject = async (applicationId: string) => {
+        if (!confirm('Reject this application?')) return;
+        setActionInProgress(applicationId);
+        try {
+            await api.patch(`/applications/${applicationId}/status`, { status: 'REJECTED' });
+            setApplications(prev => prev.map(app =>
+                app.id === applicationId ? { ...app, status: 'REJECTED' as const } : app
+            ));
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to reject');
+        } finally {
+            setActionInProgress(null);
+        }
+    };
+
+    // Mark Placed: Only for SHORTLISTED
+    const handleMarkPlaced = async (studentId: string, studentEmail: string) => {
+        if (!confirm(`Mark ${studentEmail} as PLACED? This action cannot be undone.`)) {
+            return;
+        }
+
+        setActionInProgress(studentId);
+        try {
+            await api.patch(`/users/${studentId}/mark-placed`, {});
+            setPlacedStudents(prev => new Set([...prev, studentId]));
+            alert(`${studentEmail} has been marked as placed!`);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to mark as placed');
+        } finally {
+            setActionInProgress(null);
         }
     };
 
@@ -123,13 +158,26 @@ export default function AdminApplicationsPage() {
         });
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'APPLIED': return '#666';
-            case 'SHORTLISTED': return 'green';
-            case 'REJECTED': return 'red';
-            default: return '#666';
-        }
+    const getStatusBadge = (status: string) => {
+        const styles: Record<string, { bg: string; color: string }> = {
+            'APPLIED': { bg: '#fff3cd', color: '#856404' },
+            'SHORTLISTED': { bg: '#d4edda', color: '#155724' },
+            'REJECTED': { bg: '#f8d7da', color: '#721c24' },
+        };
+        const style = styles[status] || { bg: '#e2e3e5', color: '#383d41' };
+
+        return (
+            <span style={{
+                padding: '4px 10px',
+                borderRadius: '12px',
+                backgroundColor: style.bg,
+                color: style.color,
+                fontWeight: 'bold',
+                fontSize: '12px',
+            }}>
+                {status}
+            </span>
+        );
     };
 
     if (loading) {
@@ -139,7 +187,7 @@ export default function AdminApplicationsPage() {
     const selectedJob = jobs.find(j => j.id === selectedJobId);
 
     return (
-        <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1>Manage Applications</h1>
                 <div>
@@ -150,6 +198,19 @@ export default function AdminApplicationsPage() {
                         Logout
                     </button>
                 </div>
+            </div>
+
+            {/* Workflow Legend */}
+            <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '15px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                fontSize: '14px'
+            }}>
+                <strong>Workflow:</strong> APPLIED → <em>Shortlist</em> → SHORTLISTED → <em>Mark Placed</em> → PLACED
+                <br />
+                <span style={{ color: '#666' }}>You can reject at any stage.</span>
             </div>
 
             {error && (
@@ -185,9 +246,10 @@ export default function AdminApplicationsPage() {
             {selectedJob && (
                 <div style={{
                     padding: '15px',
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: '#e7f3ff',
                     borderRadius: '8px',
-                    marginBottom: '20px'
+                    marginBottom: '20px',
+                    borderLeft: '4px solid #0070f3'
                 }}>
                     <strong>{selectedJob.company_name}</strong> - {selectedJob.role}
                     {selectedJob.ctc && <span> | CTC: {selectedJob.ctc}</span>}
@@ -209,46 +271,109 @@ export default function AdminApplicationsPage() {
                                 <th style={{ padding: '10px' }}>Student Email</th>
                                 <th style={{ padding: '10px' }}>Applied On</th>
                                 <th style={{ padding: '10px' }}>Status</th>
-                                <th style={{ padding: '10px' }}>Update Status</th>
+                                <th style={{ padding: '10px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {applications.map(app => (
-                                <tr key={app.id} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '10px' }}>
-                                        {app.student?.email || 'Unknown'}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        {formatDate(app.applied_at)}
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        <span style={{
-                                            color: getStatusColor(app.status),
-                                            fontWeight: 'bold'
-                                        }}>
-                                            {app.status}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '10px' }}>
-                                        <select
-                                            value={app.status}
-                                            onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                                            disabled={updatingId === app.id}
-                                            style={{
-                                                padding: '5px 10px',
-                                                border: '1px solid #ccc',
-                                                borderRadius: '4px',
-                                                cursor: updatingId === app.id ? 'not-allowed' : 'pointer',
-                                            }}
-                                        >
-                                            <option value="APPLIED">APPLIED</option>
-                                            <option value="SHORTLISTED">SHORTLISTED</option>
-                                            <option value="REJECTED">REJECTED</option>
-                                        </select>
-                                        {updatingId === app.id && <span style={{ marginLeft: '10px' }}>Updating...</span>}
-                                    </td>
-                                </tr>
-                            ))}
+                            {applications.map(app => {
+                                const isPlaced = placedStudents.has(app.student_id);
+                                const isProcessing = actionInProgress === app.id || actionInProgress === app.student_id;
+
+                                return (
+                                    <tr key={app.id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '10px' }}>
+                                            {app.student?.email || 'Unknown'}
+                                            {isPlaced && (
+                                                <span style={{
+                                                    marginLeft: '8px',
+                                                    padding: '2px 8px',
+                                                    backgroundColor: '#28a745',
+                                                    color: 'white',
+                                                    borderRadius: '10px',
+                                                    fontSize: '11px',
+                                                }}>
+                                                    PLACED
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            {formatDate(app.applied_at)}
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            {getStatusBadge(app.status)}
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {/* APPLIED → Shortlist button */}
+                                                {app.status === 'APPLIED' && !isPlaced && (
+                                                    <button
+                                                        onClick={() => handleShortlist(app.id)}
+                                                        disabled={isProcessing}
+                                                        style={{
+                                                            padding: '5px 12px',
+                                                            backgroundColor: isProcessing ? '#ccc' : '#0070f3',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                        }}
+                                                    >
+                                                        {isProcessing ? '...' : 'Shortlist'}
+                                                    </button>
+                                                )}
+
+                                                {/* SHORTLISTED → Mark Placed button */}
+                                                {app.status === 'SHORTLISTED' && !isPlaced && (
+                                                    <button
+                                                        onClick={() => app.student && handleMarkPlaced(app.student_id, app.student.email)}
+                                                        disabled={isProcessing || !app.student}
+                                                        style={{
+                                                            padding: '5px 12px',
+                                                            backgroundColor: isProcessing ? '#ccc' : '#28a745',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                        }}
+                                                    >
+                                                        {isProcessing ? '...' : 'Mark Placed'}
+                                                    </button>
+                                                )}
+
+                                                {/* Reject button (for APPLIED or SHORTLISTED) */}
+                                                {(app.status === 'APPLIED' || app.status === 'SHORTLISTED') && !isPlaced && (
+                                                    <button
+                                                        onClick={() => handleReject(app.id)}
+                                                        disabled={isProcessing}
+                                                        style={{
+                                                            padding: '5px 12px',
+                                                            backgroundColor: isProcessing ? '#ccc' : '#dc3545',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                        }}
+                                                    >
+                                                        {isProcessing ? '...' : 'Reject'}
+                                                    </button>
+                                                )}
+
+                                                {/* Already placed */}
+                                                {isPlaced && (
+                                                    <span style={{ color: '#28a745', fontWeight: 'bold' }}>
+                                                        ✓ Placed
+                                                    </span>
+                                                )}
+
+                                                {/* Rejected - no actions */}
+                                                {app.status === 'REJECTED' && !isPlaced && (
+                                                    <span style={{ color: '#999' }}>-</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
 
