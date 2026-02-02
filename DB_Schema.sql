@@ -7,7 +7,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('STUDENT', 'ADMIN')),
     created_at TIMESTAMP DEFAULT now()
 );
@@ -57,3 +56,7 @@ CREATE INDEX idx_jobs_active ON jobs(is_active);
 CREATE INDEX idx_jobs_min_cgpa ON jobs(min_cgpa);
 CREATE INDEX idx_applications_job ON applications(job_id);
 CREATE INDEX idx_applications_student ON applications(student_id);
+
+
+ALTER TABLE users
+ADD COLUMN password_hash TEXT NOT NULL;

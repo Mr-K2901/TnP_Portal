@@ -66,6 +66,7 @@ class ProfileResponse(BaseModel):
     full_name: str
     cgpa: Optional[float]
     branch: str
+    department: Optional[str]
     resume_url: Optional[str]
     is_placed: bool
     
@@ -78,6 +79,7 @@ class ProfileUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=1, max_length=200)
     cgpa: Optional[float] = Field(None, ge=0, le=10)
     branch: Optional[str] = Field(None, min_length=1, max_length=100)
+    department: Optional[str] = Field(None, min_length=1, max_length=100)
     resume_url: Optional[str] = Field(None, max_length=500)
 
 

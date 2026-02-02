@@ -37,7 +37,7 @@ export default function LoginPage() {
             const payload = parseToken(response.access_token);
 
             if (payload.role === 'ADMIN') {
-                router.push('/admin/jobs');
+                router.push('/admin');
             } else if (payload.role === 'STUDENT') {
                 router.push('/student/dashboard');
             } else {

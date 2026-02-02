@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.api import auth, jobs, applications, users
+from app.api import auth, jobs, applications, users, admin
 
 settings = get_settings()
 
@@ -44,6 +44,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
 app.include_router(applications.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 # =============================================================================
 # HEALTH CHECK

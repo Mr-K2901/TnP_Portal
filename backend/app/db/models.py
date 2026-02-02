@@ -53,7 +53,8 @@ class Profile(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     full_name = Column(Text, nullable=False)
     cgpa = Column(Float)  # CHECK constraint in DB (0-10)
-    branch = Column(Text, nullable=False)
+    branch = Column(Text, nullable=False)  # Course: CSE, IT, ECE, etc.
+    department = Column(Text)  # Department: Engineering, Management, Science, etc.
     resume_url = Column(Text)
     is_placed = Column(Boolean, default=False)
     
