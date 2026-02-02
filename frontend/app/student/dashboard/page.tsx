@@ -152,7 +152,7 @@ export default function StudentDashboardPage() {
                             fontWeight: 'bold',
                             fontSize: '13px',
                         }}>
-                            {isPlaced ? 'Placed' : '⭐ Shortlisted'}
+                            ⭐ Shortlisted
                         </span>
                     );
                 case 'REJECTED':
@@ -160,19 +160,6 @@ export default function StudentDashboardPage() {
                 default:
                     return <span style={{ color: '#666' }}>{status}</span>;
             }
-        }
-
-        // Already placed - cannot apply to new jobs
-        if (isPlaced) {
-            return (
-                <span style={{
-                    color: '#28a745',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                }}>
-                    🎉 Already Placed
-                </span>
-            );
         }
 
         // Not applied yet - check eligibility
@@ -229,26 +216,6 @@ export default function StudentDashboardPage() {
 
     return (
         <div style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-            {/* Placed Banner with Company Name */}
-            {isPlaced && (
-                <div style={{
-                    backgroundColor: '#d4edda',
-                    color: '#155724',
-                    padding: '20px',
-                    borderRadius: '8px',
-                    marginBottom: '20px',
-                    border: '1px solid #c3e6cb',
-                    textAlign: 'center'
-                }}>
-                    <span style={{ fontSize: '32px' }}>🎉</span>
-                    <h2 style={{ margin: '10px 0 5px 0' }}>
-                        Congratulations{profileName ? `, ${profileName}` : ''}!
-                    </h2>
-                    <p style={{ margin: 0, fontSize: '18px' }}>
-                        You have been placed in <strong>{placementCompany || 'a company'}</strong>
-                    </p>
-                </div>
-            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1>Available Jobs</h1>
