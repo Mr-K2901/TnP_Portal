@@ -71,13 +71,6 @@ def apply_to_job(
             detail="Please complete your profile before applying"
         )
     
-    # Check if student is already placed
-    if profile.is_placed:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are already placed and cannot apply to new jobs."
-        )
-    
     if profile.cgpa is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
