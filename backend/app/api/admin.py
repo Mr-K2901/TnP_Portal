@@ -3,15 +3,20 @@ Admin-only Endpoints
 Read-only access to aggregate data.
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
 from pydantic import BaseModel
+import csv
+import io
+import uuid
+import pandas as pd
+import numpy as np
 
 from app.db.session import get_db
 from app.db.models import User, Profile, Application, Job
-from app.core.security import require_admin
+from app.core.security import require_admin, hash_password
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -38,6 +43,12 @@ class StudentListItem(BaseModel):
 class StudentListResponse(BaseModel):
     students: List[StudentListItem]
     total: int
+
+
+class ImportSummary(BaseModel):
+    success_count: int
+    failure_count: int
+    errors: List[str]
 
 
 # =============================================================================
@@ -136,4 +147,117 @@ def list_students(
     return StudentListResponse(
         students=students,
         total=len(students)
+    )
+
+
+@router.post("/students/import", response_model=ImportSummary)
+async def import_students(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Import students from a CSV or Excel file.
+    Expected columns: full_name, email, branch, department, cgpa, password (optional)
+    """
+    ext = file.filename.split('.')[-1].lower()
+    if ext not in ['csv', 'xlsx', 'xls']:
+        return ImportSummary(
+            success_count=0,
+            failure_count=1,
+            errors=["Only CSV and Excel files are supported."]
+        )
+
+    items = []
+    
+    if ext == 'csv':
+        content = await file.read()
+        try:
+            decoded = content.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                decoded = content.decode('latin-1')
+            except Exception:
+                return ImportSummary(success_count=0, failure_count=1, errors=["Could not decode file encoding."])
+        
+        csv_reader = csv.DictReader(io.StringIO(decoded))
+        items = list(csv_reader)
+    else:
+        # Excel handling
+        content = await file.read()
+        try:
+            df = pd.read_excel(io.BytesIO(content))
+            # Replace NaN with empty string
+            df = df.replace({np.nan: None})
+            items = df.to_dict('records')
+        except Exception as e:
+            return ImportSummary(success_count=0, failure_count=1, errors=[f"Error reading Excel file: {str(e)}"])
+
+    success_count = 0
+    failure_count = 0
+    errors = []
+
+    for row_idx, row in enumerate(items, start=1):
+        try:
+            # Handle potential variations in column names or types from pandas
+            full_name = str(row.get('full_name', '') or '').strip()
+            email = str(row.get('email', '') or '').strip()
+            branch = str(row.get('branch', '') or '').strip()
+            department = str(row.get('department', '') or '').strip()
+            cgpa_val = row.get('cgpa', 0)
+            password = str(row.get('password', 'password123') or '').strip() or 'password123'
+
+            if not email or not full_name or not branch:
+                errors.append(f"Row {row_idx}: Missing required fields (email, full_name, or branch)")
+                failure_count += 1
+                continue
+
+            # Check for existing user
+            existing_user = db.query(User).filter(User.email == email).first()
+            if existing_user:
+                errors.append(f"Row {row_idx}: User with email {email} already exists")
+                failure_count += 1
+                continue
+
+            # Parse CGPA
+            try:
+                cgpa = float(cgpa_val) if cgpa_val is not None else 0.0
+            except (ValueError, TypeError):
+                cgpa = 0.0
+
+            # Create User
+            new_user = User(
+                id=uuid.uuid4(),
+                email=email,
+                password_hash=hash_password(password),
+                role="STUDENT"
+            )
+            db.add(new_user)
+            db.flush()  # To get the ID for profile
+
+            # Create Profile
+            new_profile = Profile(
+                user_id=new_user.id,
+                full_name=full_name,
+                cgpa=cgpa,
+                branch=branch,
+                department=department
+            )
+            db.add(new_profile)
+            
+            success_count += 1
+        except Exception as e:
+            errors.append(f"Row {row_idx}: Unexpected error: {str(e)}")
+            failure_count += 1
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return ImportSummary(success_count=0, failure_count=failure_count + success_count, errors=[f"Database commit failed: {str(e)}"])
+
+    return ImportSummary(
+        success_count=success_count,
+        failure_count=failure_count,
+        errors=errors
     )
