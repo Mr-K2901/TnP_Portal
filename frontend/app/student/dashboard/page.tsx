@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
 
 interface Job {
     id: string;
@@ -68,6 +69,15 @@ export default function StudentDashboardPage() {
     const [isPlaced, setIsPlaced] = useState(false);
     const [profileName, setProfileName] = useState('');
     const [studentCgpa, setStudentCgpa] = useState<number | null>(null);
+
+    // Pagination
+    const PAGE_SIZE_OPTIONS = [10, 25, 50];
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    // Drawer state
+    const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -268,6 +278,19 @@ export default function StudentDashboardPage() {
                     </div>
                 )}
 
+                {/* Table Controls */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', color: colors.textMuted }}>
+                        Showing {jobs.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, jobs.length)} of {jobs.length} jobs
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '14px', color: colors.textMuted }}>Show:</span>
+                        <select value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, fontSize: '14px' }}>
+                            {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
+                        </select>
+                    </div>
+                </div>
+
                 {/* Jobs Table */}
                 <div style={{ backgroundColor: colors.card, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                     {jobs.length === 0 ? (
@@ -284,7 +307,7 @@ export default function StudentDashboardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {jobs.map((job, idx) => {
+                                {jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((job, idx) => {
                                     const eligible = isEligible(job);
                                     const hasApplied = applicationStatus.has(job.id);
                                     return (
@@ -295,7 +318,23 @@ export default function StudentDashboardPage() {
                                                 opacity: !eligible && !hasApplied ? 0.7 : 1
                                             }}
                                         >
-                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>{job.company_name}</td>
+                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                <button
+                                                    onClick={() => { setSelectedJob(job); setDrawerOpen(true); }}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: colors.primary,
+                                                        fontSize: '16px',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline',
+                                                        padding: 0,
+                                                    }}
+                                                >
+                                                    {job.company_name}
+                                                </button>
+                                            </td>
                                             <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{job.role}</td>
                                             <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{job.ctc || '-'}</td>
                                             <td style={{
@@ -316,11 +355,52 @@ export default function StudentDashboardPage() {
                             </tbody>
                         </table>
                     )}
-                    <div style={{ padding: '16px', borderTop: `1px solid ${colors.border}`, color: colors.textMuted, fontSize: '14px' }}>
-                        Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                    <div style={{ padding: '16px 20px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: colors.textMuted, fontSize: '14px' }}>
+                            Page {currentPage} of {Math.ceil(jobs.length / pageSize) || 1}
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${colors.border}`,
+                                    backgroundColor: currentPage === 1 ? '#f1f5f9' : colors.card,
+                                    color: currentPage === 1 ? '#94a3b8' : colors.text,
+                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(Math.ceil(jobs.length / pageSize), p + 1))}
+                                disabled={currentPage >= Math.ceil(jobs.length / pageSize)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${colors.border}`,
+                                    backgroundColor: currentPage >= Math.ceil(jobs.length / pageSize) ? '#f1f5f9' : colors.card,
+                                    color: currentPage >= Math.ceil(jobs.length / pageSize) ? '#94a3b8' : colors.text,
+                                    cursor: currentPage >= Math.ceil(jobs.length / pageSize) ? 'not-allowed' : 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
                 </div>
             </main>
+
+            {/* Job Description Drawer */}
+            <JobDescriptionDrawer
+                job={selectedJob}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+            />
         </div>
     );
 }

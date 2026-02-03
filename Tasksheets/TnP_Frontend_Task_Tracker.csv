@@ -1,0 +1,10 @@
+Task ID,Route / Page,Component,Task Category,Task Description,API Used,Role Scope,UI States Covered,Status,Priority,Browser Tested,Dependency,Remarks
+FE-01,/login,Page,Integration,Implement role-based redirect after login,POST /api/auth/login,ALL,"Loading,Error",Done,High,Chrome,BE-04,"Student → /student, Admin unchanged"
+FE-02,/student,Page,UI,Create Student Home dashboard layout,GET /api/applications,STUDENT,"Loading,Empty",Done,High,Chrome,BE-17,Placement-centric home
+FE-03,/student,Cards,UI,Display placement status and stats grid,GET /api/applications,STUDENT,"Loading,Empty",Done,High,Chrome,BE-16,Derived on frontend
+FE-04,/student/dashboard,Page,UI,Restyle Jobs Browser page,GET /api/admin/jobs,STUDENT,"Loading,Empty",Done,Medium,Chrome,BE-08,Modern table UI
+FE-05,/student/applications,Page,UI,Restyle My Applications page with badges,GET /api/applications,STUDENT,"Loading,Empty",Done,Medium,Chrome,BE-17,Status badges
+FE-06,/admin/jobs,Table,UI,Adjust default pagination to 10 rows,GET /api/admin/jobs,ADMIN,Loading,Done,Low,Chrome,BE-08,Frontend-only
+FE-07,/admin/students,Table,UI,Adjust default pagination to 10 rows,GET /api/admin/students,ADMIN,Loading,Done,Low,Chrome,BE-18,Frontend-only
+FE-08,/student,Navigation,UI,Add student-specific navigation items,N/A,STUDENT,N/A,Done,Medium,Chrome,None,"Home, Jobs, Applications"
+FE-09,/student,Drawer,Integration,Implement Job Description drawer on company click,GET /api/admin/jobs,STUDENT,Loading,Todo,High,No,BE-08,Job Insight Panel

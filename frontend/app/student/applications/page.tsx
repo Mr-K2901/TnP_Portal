@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
 
 interface Application {
     id: string;
@@ -61,6 +62,10 @@ export default function StudentApplicationsPage() {
     const [isPlaced, setIsPlaced] = useState(false);
     const [placementCompany, setPlacementCompany] = useState('');
     const [placedApplicationId, setPlacedApplicationId] = useState<string | null>(null);
+
+    // Drawer state
+    const [selectedJob, setSelectedJob] = useState<{ id: string; company_name: string; role: string; ctc?: string | null } | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -243,7 +248,23 @@ export default function StudentApplicationsPage() {
                                     const isPlacedRow = isPlaced && app.id === placedApplicationId;
                                     return (
                                         <tr key={app.id} style={{ backgroundColor: isPlacedRow ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>{app.job?.company_name || 'Unknown'}</td>
+                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                <button
+                                                    onClick={() => { if (app.job) { setSelectedJob(app.job); setDrawerOpen(true); } }}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: colors.primary,
+                                                        fontSize: '16px',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        textDecoration: 'underline',
+                                                        padding: 0,
+                                                    }}
+                                                >
+                                                    {app.job?.company_name || 'Unknown'}
+                                                </button>
+                                            </td>
                                             <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{app.job?.role || 'Unknown'}</td>
                                             <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{formatDate(app.applied_at)}</td>
                                             <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>{getStatusBadge(app)}</td>
@@ -279,7 +300,14 @@ export default function StudentApplicationsPage() {
                         Total: {applications.length} application{applications.length !== 1 ? 's' : ''}
                     </div>
                 </div>
-            </main >
-        </div >
+            </main>
+
+            {/* Job Description Drawer */}
+            <JobDescriptionDrawer
+                job={selectedJob}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+            />
+        </div>
     );
 }

@@ -64,7 +64,21 @@ export default function AdminJobsPage() {
         min_cgpa: '0',
         jd_link: '',
     });
+    const [showTextDesc, setShowTextDesc] = useState(false);
+    const [textDesc, setTextDesc] = useState('');
     const [creating, setCreating] = useState(false);
+
+    // Edit state
+    const [editingJob, setEditingJob] = useState<Job | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        company_name: '',
+        role: '',
+        ctc: '',
+        min_cgpa: '0',
+        jd_link: '',
+        description: '', // JD Summary Text
+    });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -114,13 +128,65 @@ export default function AdminJobsPage() {
                 min_cgpa: parseFloat(formData.min_cgpa) || 0,
                 jd_link: formData.jd_link || null,
             });
+
+            // Save JD Summary to localStorage using the new job ID
+            if (textDesc) {
+                localStorage.setItem(`job_desc_${newJob.id}`, textDesc);
+            }
+
             setJobs(prev => [newJob, ...prev]);
             setShowForm(false);
             setFormData({ company_name: '', role: '', ctc: '', min_cgpa: '0', jd_link: '' });
+            setTextDesc('');
+            setShowTextDesc(false);
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to create job');
         } finally {
             setCreating(false);
+        }
+    };
+
+    const openEditModal = (job: Job) => {
+        setEditingJob(job);
+        // Load description from localStorage if available
+        const savedDesc = localStorage.getItem(`job_desc_${job.id}`) || '';
+
+        setEditFormData({
+            company_name: job.company_name,
+            role: job.role,
+            ctc: job.ctc || '',
+            min_cgpa: String(job.min_cgpa),
+            jd_link: job.jd_link || '',
+            description: savedDesc,
+        });
+    };
+
+    const handleEditJob = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingJob) return;
+        setSaving(true);
+        try {
+            const updated = await api.put<Job>(`/jobs/${editingJob.id}`, {
+                company_name: editFormData.company_name,
+                role: editFormData.role,
+                ctc: editFormData.ctc || null,
+                min_cgpa: parseFloat(editFormData.min_cgpa) || 0,
+                jd_link: editFormData.jd_link || null,
+            });
+
+            // Update JD Summary in localStorage
+            if (editFormData.description) {
+                localStorage.setItem(`job_desc_${editingJob.id}`, editFormData.description);
+            } else {
+                localStorage.removeItem(`job_desc_${editingJob.id}`);
+            }
+
+            setJobs(prev => prev.map(j => j.id === editingJob.id ? updated : j));
+            setEditingJob(null);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to update job');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -301,83 +367,140 @@ export default function AdminJobsPage() {
                 {showForm && (
                     <form onSubmit={handleCreateJob} style={{
                         backgroundColor: colors.card,
-                        padding: '24px',
-                        marginBottom: '20px',
-                        borderRadius: '12px',
+                        padding: '32px',
+                        marginBottom: '32px',
+                        borderRadius: '16px',
                         border: `1px solid ${colors.border}`,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)'
                     }}>
-                        <h3 style={{ margin: '0 0 20px 0', color: colors.text, fontWeight: 600, fontSize: '18px' }}>New Job Posting</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase' }}>Company Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_name}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
-                                    required
-                                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: '14px' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase' }}>Role *</label>
-                                <input
-                                    type="text"
-                                    value={formData.role}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                                    required
-                                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: '14px' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase' }}>CTC</label>
-                                <input
-                                    type="text"
-                                    value={formData.ctc}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, ctc: e.target.value }))}
-                                    placeholder="e.g., 12-15 LPA"
-                                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: '14px' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase' }}>Min CGPA</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="10"
-                                    value={formData.min_cgpa}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, min_cgpa: e.target.value }))}
-                                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: '14px' }}
-                                />
-                            </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase' }}>JD Link</label>
-                                <input
-                                    type="url"
-                                    value={formData.jd_link}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, jd_link: e.target.value }))}
-                                    placeholder="https://..."
-                                    style={{ width: '100%', padding: '10px 14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: '14px' }}
-                                />
-                            </div>
+                        <h3 style={{ margin: '0 0 24px 0', color: colors.text, fontWeight: 600, fontSize: '20px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '16px' }}>New Job Posting</h3>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                            {/* Section: Basic Info */}
+                            <section>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Basic Information</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Company Name *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.company_name}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                                            required
+                                            placeholder="e.g. Google"
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Role *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.role}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                                            required
+                                            placeholder="e.g. Software Engineer"
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Section: Compensation & Criteria */}
+                            <section>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Compensation & Criteria</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>CTC / Salary</label>
+                                        <input
+                                            type="text"
+                                            value={formData.ctc}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, ctc: e.target.value }))}
+                                            placeholder="e.g. 12-15 LPA"
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Min CGPA Eligibility</label>
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="10"
+                                            value={formData.min_cgpa}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, min_cgpa: e.target.value }))}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Section: Description */}
+                            <section>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Job Description</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>External JD Link (URL)</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTextDesc(!showTextDesc)}
+                                                style={{
+                                                    background: 'none',
+                                                    border: `1px solid ${showTextDesc ? colors.primary : colors.border}`,
+                                                    color: showTextDesc ? colors.primary : colors.textMuted,
+                                                    borderRadius: '6px',
+                                                    padding: '4px 10px',
+                                                    fontSize: '11px',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                {showTextDesc ? '− Hide Text Box' : '+ Add Summary Text'}
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={formData.jd_link}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, jd_link: e.target.value }))}
+                                            placeholder="https://company.com/career/job-details"
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                        />
+                                    </div>
+                                    {showTextDesc && (
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>JD Summary Text</label>
+                                            <textarea
+                                                value={textDesc}
+                                                onChange={(e) => setTextDesc(e.target.value)}
+                                                placeholder="Briefly describe the key responsibilities and benefits..."
+                                                rows={4}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', resize: 'vertical', outline: 'none' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
                         </div>
-                        <div style={{ marginTop: '20px' }}>
+
+                        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'flex-end' }}>
                             <button
                                 type="submit"
                                 disabled={creating}
                                 style={{
-                                    padding: '10px 24px',
+                                    padding: '12px 32px',
                                     backgroundColor: creating ? colors.secondary : colors.success,
                                     color: 'white',
                                     border: 'none',
-                                    borderRadius: '8px',
+                                    borderRadius: '10px',
                                     cursor: creating ? 'not-allowed' : 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: 500
+                                    fontSize: '15px',
+                                    fontWeight: 600,
+                                    transition: 'transform 0.1s grayscale 0.2s',
+                                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)'
                                 }}
                             >
-                                {creating ? 'Creating...' : 'Create Job'}
+                                {creating ? 'Creating...' : 'Publish Job Posting'}
                             </button>
                         </div>
                     </form>
@@ -444,20 +567,20 @@ export default function AdminJobsPage() {
                                             </span>
                                         </td>
                                         <td style={{ padding: '14px 16px', borderBottom: `1px solid ${colors.border}` }}>
-                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                 <button
                                                     onClick={() => handleToggleActive(job)}
                                                     disabled={togglingId === job.id}
                                                     style={{
-                                                        padding: '8px 16px',
-                                                        minWidth: '100px',
-                                                        backgroundColor: job.is_active ? '#fef2f2' : '#dcfce7',
+                                                        padding: '7px 12px',
+                                                        minWidth: '95px',
+                                                        backgroundColor: job.is_active ? '#fee2e2' : '#dcfce7',
                                                         color: job.is_active ? colors.danger : '#166534',
                                                         border: 'none',
                                                         borderRadius: '6px',
                                                         cursor: togglingId === job.id ? 'not-allowed' : 'pointer',
-                                                        fontSize: '14px',
-                                                        fontWeight: 500,
+                                                        fontSize: '13px',
+                                                        fontWeight: 600,
                                                         textAlign: 'center'
                                                     }}
                                                 >
@@ -466,20 +589,37 @@ export default function AdminJobsPage() {
                                                 <a
                                                     href={`/admin/applications?job=${job.id}`}
                                                     style={{
-                                                        padding: '8px 16px',
-                                                        minWidth: '100px',
-                                                        backgroundColor: '#e0f2fe',
-                                                        color: '#0369a1',
+                                                        padding: '7px 12px',
+                                                        minWidth: '90px',
+                                                        backgroundColor: '#f1f5f9',
+                                                        color: colors.text,
+                                                        border: `1px solid ${colors.border}`,
                                                         borderRadius: '6px',
                                                         textDecoration: 'none',
-                                                        fontSize: '14px',
-                                                        fontWeight: 500,
+                                                        fontSize: '13px',
+                                                        fontWeight: 600,
                                                         textAlign: 'center',
                                                         display: 'inline-block'
                                                     }}
                                                 >
                                                     View Apps
                                                 </a>
+                                                <button
+                                                    onClick={() => openEditModal(job)}
+                                                    style={{
+                                                        padding: '7px 12px',
+                                                        minWidth: '60px',
+                                                        backgroundColor: '#fef3c7',
+                                                        color: '#92400e',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '13px',
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    Edit
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -583,6 +723,185 @@ export default function AdminJobsPage() {
                     Page {currentPage} of {totalPages || 1}
                 </p>
             </main>
+
+            {/* Edit Job Modal */}
+            {editingJob && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '24px'
+                }}>
+                    <div style={{
+                        backgroundColor: colors.card,
+                        padding: '32px',
+                        borderRadius: '20px',
+                        width: '100%',
+                        maxWidth: '680px',
+                        maxHeight: '90vh',
+                        overflowY: 'auto',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        position: 'relative'
+                    }}>
+                        <button
+                            onClick={() => setEditingJob(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '24px',
+                                right: '24px',
+                                background: '#f1f5f9',
+                                border: 'none',
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px',
+                                color: colors.textMuted,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            ×
+                        </button>
+
+                        <h2 style={{ margin: '0 0 24px 0', color: colors.text, fontWeight: 700, fontSize: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '16px' }}>
+                            Edit Job Posting
+                        </h2>
+
+                        <form onSubmit={handleEditJob}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                {/* Section: Basic Info */}
+                                <section>
+                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Basic Information</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Company Name</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.company_name}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                                                required
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Role</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.role}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
+                                                required
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Section: Compensation & Criteria */}
+                                <section>
+                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Compensation & Criteria</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>CTC / Salary</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.ctc}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, ctc: e.target.value }))}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Min CGPA</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                max="10"
+                                                value={editFormData.min_cgpa}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, min_cgpa: e.target.value }))}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Section: Links/Files */}
+                                <section>
+                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description & Links</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>External JD Link (URL)</label>
+                                            <input
+                                                type="url"
+                                                value={editFormData.jd_link}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, jd_link: e.target.value }))}
+                                                placeholder="https://..."
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>JD Summary Text</label>
+                                            <textarea
+                                                value={editFormData.description}
+                                                onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                                                placeholder="Briefly describe the key responsibilities and benefits..."
+                                                rows={4}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', resize: 'vertical', outline: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: `1px solid ${colors.border}`, display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingJob(null)}
+                                    style={{
+                                        padding: '12px 24px',
+                                        backgroundColor: '#f1f5f9',
+                                        color: colors.text,
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        cursor: 'pointer',
+                                        fontSize: '15px',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    style={{
+                                        padding: '12px 32px',
+                                        backgroundColor: colors.primary,
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        cursor: saving ? 'not-allowed' : 'pointer',
+                                        fontSize: '15px',
+                                        fontWeight: 600,
+                                        minWidth: '160px',
+                                        boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

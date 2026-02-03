@@ -1,0 +1,11 @@
+Task ID,Area,Task Description,Mandatory,Status,Remarks
+GEN-01,Environment,Setup Python virtual environment,Yes,Done,venv created
+GEN-02,Environment,Configure .env variables,Yes,Done,DB + JWT secrets
+GEN-03,Database,Verify PostgreSQL connectivity,Yes,Done,Connection tested
+GEN-04,Testing,Test all auth endpoints,Yes,Done,Login verified
+GEN-05,Testing,Test job CRUD endpoints,Yes,Done,Admin flow ok
+GEN-06,Testing,Test application lifecycle,Yes,Done,Apply → placed
+GEN-07,Frontend,Verify role-based routing,Yes,Done,Student/Admin split
+GEN-08,Frontend,Check empty and loading states,Yes,Done,Handled
+GEN-09,Docs,Document API endpoints,No,Todo,OpenAPI draft
+GEN-10,Cleanup,Remove unused code and logs,No,Todo,Post-feature freeze

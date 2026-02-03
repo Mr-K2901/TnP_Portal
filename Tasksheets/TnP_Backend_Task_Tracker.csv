@@ -1,0 +1,22 @@
+Task ID,Module / Domain,Task Category,Task Description,Endpoint / File,Schema Impact,Logic Impact,Environment,Status,Priority,Validation Method,Tested,Dependency,Remarks
+BE-01,Project Setup,Setup,Create FastAPI project structure and entry point,main.py,None,None,Local,Done,High,Manual,Yes,None,Initial backend scaffold
+BE-02,Environment,Setup,Setup virtual environment and install dependencies,requirements.txt,None,None,Local,Done,High,Manual,Yes,None,FastAPI stack installed
+BE-03,Database,Setup,Configure PostgreSQL connection and session handling,db.py,None,None,Local,Done,High,Manual,Yes,None,DB connection verified
+BE-04,Auth,API,Create login API endpoint with JWT issuance,POST /api/auth/login,None,Core,Local,Done,High,Postman,Yes,None,Returns role-aware token
+BE-05,Auth,Logic,Implement JWT validation dependency for protected routes,auth.py,None,Core,Local,Done,High,Manual,Yes,BE-04,Used across secured APIs
+BE-06,Auth,Logic,Implement role-based access control (ADMIN/STUDENT),dependencies.py,None,Core,Local,Done,High,Manual,Yes,BE-05,Admin routes protected
+BE-07,Jobs,API,Create admin job creation endpoint,POST /api/admin/jobs,None,Core,Local,Done,High,Postman,Yes,BE-06,Admin-only
+BE-08,Jobs,API,Create admin job listing endpoint,GET /api/admin/jobs,None,None,Local,Done,High,Postman,Yes,BE-07,Pagination frontend-handled
+BE-09,Jobs,API,Create admin job update endpoint,PUT /api/admin/jobs/{id},None,Core,Local,Done,High,Postman,Yes,BE-07,Editable job fields
+BE-10,Jobs,API,Create admin job delete endpoint,DELETE /api/admin/jobs/{id},None,Core,Local,Done,High,Postman,Yes,BE-07,Hard delete logic
+BE-11,Applications,Logic,Implement CGPA eligibility validation before apply,applications.py,None,Core,Local,Done,High,Manual,Yes,BE-07,Backend is authority
+BE-12,Applications,API,Create student job apply endpoint,POST /api/applications,None,Core,Local,Done,High,Postman,Yes,BE-11,Duplicate apply blocked
+BE-13,Applications,API,Create admin applications listing endpoint,GET /api/admin/applications,None,None,Local,Done,High,Postman,Yes,BE-12,Filterable by status
+BE-14,Applications,Logic,Implement application status transitions logic,applications.py,None,Core,Local,Done,High,Manual,Yes,BE-13,No new enums added
+BE-15,Applications,API,Create admin mark application as placed endpoint,POST /api/applications/{id}/placed,None,Core,Local,Done,High,Postman,Yes,BE-14,Placement is informational
+BE-16,Placement,Logic,Derive placement state from PLACED applications,applications.py,None,Derived,Local,Done,High,Manual,Yes,BE-15,No separate placement table
+BE-17,Applications,API,Create student applications listing endpoint,GET /api/applications,None,None,Local,Done,Medium,Postman,Yes,BE-12,Used in dashboard
+BE-18,Admin Students,API,Create admin students directory endpoint,GET /api/admin/students,None,None,Local,Done,Medium,Postman,Yes,BE-06,Read-only
+BE-19,Admin Students,Logic,Compute derived student fields (applications_count),students_service.py,None,Derived,Local,Done,Medium,Manual,Yes,BE-18,No schema mutation
+BE-20,Admin Students,Logic,Resolve placed_company from applications,students_service.py,None,Derived,Local,Done,Medium,Manual,Yes,BE-18,Single source of truth
+BE-21,Testing,Test,Perform end-to-end backend flow validation,N/A,None,None,Local,Done,Medium,Manual,Yes,None,Apply → placed verified
