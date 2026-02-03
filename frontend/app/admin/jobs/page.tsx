@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
 
 interface Job {
     id: string;
@@ -13,6 +14,7 @@ interface Job {
     min_cgpa: number;
     is_active: boolean;
     jd_link: string | null;
+    description: string | null;
     created_at: string;
 }
 
@@ -63,10 +65,13 @@ export default function AdminJobsPage() {
         ctc: '',
         min_cgpa: '0',
         jd_link: '',
+        description: '',
     });
-    const [showTextDesc, setShowTextDesc] = useState(false);
-    const [textDesc, setTextDesc] = useState('');
     const [creating, setCreating] = useState(false);
+
+    // Drawer state
+    const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     // Edit state
     const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -127,18 +132,12 @@ export default function AdminJobsPage() {
                 ctc: formData.ctc || null,
                 min_cgpa: parseFloat(formData.min_cgpa) || 0,
                 jd_link: formData.jd_link || null,
+                description: formData.description || null,
             });
-
-            // Save JD Summary to localStorage using the new job ID
-            if (textDesc) {
-                localStorage.setItem(`job_desc_${newJob.id}`, textDesc);
-            }
 
             setJobs(prev => [newJob, ...prev]);
             setShowForm(false);
-            setFormData({ company_name: '', role: '', ctc: '', min_cgpa: '0', jd_link: '' });
-            setTextDesc('');
-            setShowTextDesc(false);
+            setFormData({ company_name: '', role: '', ctc: '', min_cgpa: '0', jd_link: '', description: '' });
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to create job');
         } finally {
@@ -148,16 +147,13 @@ export default function AdminJobsPage() {
 
     const openEditModal = (job: Job) => {
         setEditingJob(job);
-        // Load description from localStorage if available
-        const savedDesc = localStorage.getItem(`job_desc_${job.id}`) || '';
-
         setEditFormData({
             company_name: job.company_name,
             role: job.role,
             ctc: job.ctc || '',
             min_cgpa: String(job.min_cgpa),
             jd_link: job.jd_link || '',
-            description: savedDesc,
+            description: job.description || '',
         });
     };
 
@@ -172,14 +168,8 @@ export default function AdminJobsPage() {
                 ctc: editFormData.ctc || null,
                 min_cgpa: parseFloat(editFormData.min_cgpa) || 0,
                 jd_link: editFormData.jd_link || null,
+                description: editFormData.description || null,
             });
-
-            // Update JD Summary in localStorage
-            if (editFormData.description) {
-                localStorage.setItem(`job_desc_${editingJob.id}`, editFormData.description);
-            } else {
-                localStorage.removeItem(`job_desc_${editingJob.id}`);
-            }
 
             setJobs(prev => prev.map(j => j.id === editingJob.id ? updated : j));
             setEditingJob(null);
@@ -439,26 +429,7 @@ export default function AdminJobsPage() {
                                 <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: colors.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Job Description</h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>External JD Link (URL)</label>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowTextDesc(!showTextDesc)}
-                                                style={{
-                                                    background: 'none',
-                                                    border: `1px solid ${showTextDesc ? colors.primary : colors.border}`,
-                                                    color: showTextDesc ? colors.primary : colors.textMuted,
-                                                    borderRadius: '6px',
-                                                    padding: '4px 10px',
-                                                    fontSize: '11px',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                {showTextDesc ? '− Hide Text Box' : '+ Add Summary Text'}
-                                            </button>
-                                        </div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>External JD Link (URL)</label>
                                         <input
                                             type="url"
                                             value={formData.jd_link}
@@ -467,18 +438,16 @@ export default function AdminJobsPage() {
                                             style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
                                         />
                                     </div>
-                                    {showTextDesc && (
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>JD Summary Text</label>
-                                            <textarea
-                                                value={textDesc}
-                                                onChange={(e) => setTextDesc(e.target.value)}
-                                                placeholder="Briefly describe the key responsibilities and benefits..."
-                                                rows={4}
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', resize: 'vertical', outline: 'none' }}
-                                            />
-                                        </div>
-                                    )}
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>JD Summary Text</label>
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                            placeholder="Briefly describe the key responsibilities and benefits..."
+                                            rows={4}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', resize: 'vertical', outline: 'none' }}
+                                        />
+                                    </div>
                                 </div>
                             </section>
                         </div>
@@ -544,13 +513,30 @@ export default function AdminJobsPage() {
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>CTC</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Min CGPA</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Actions</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginatedJobs.map((job, idx) => (
                                     <tr key={job.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                        <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>{job.company_name}</td>
+                                        <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                            <button
+                                                onClick={() => { setSelectedJob(job); setDrawerOpen(true); }}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: colors.primary,
+                                                    fontSize: '15px',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                    padding: 0,
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                {job.company_name}
+                                            </button>
+                                        </td>
                                         <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>{job.role}</td>
                                         <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>{job.ctc || '-'}</td>
                                         <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>{job.min_cgpa}</td>
@@ -567,7 +553,7 @@ export default function AdminJobsPage() {
                                             </span>
                                         </td>
                                         <td style={{ padding: '14px 16px', borderBottom: `1px solid ${colors.border}` }}>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
                                                 <button
                                                     onClick={() => handleToggleActive(job)}
                                                     disabled={togglingId === job.id}
@@ -602,7 +588,7 @@ export default function AdminJobsPage() {
                                                         display: 'inline-block'
                                                     }}
                                                 >
-                                                    View Apps
+                                                    View Applicants
                                                 </a>
                                                 <button
                                                     onClick={() => openEditModal(job)}
@@ -902,6 +888,11 @@ export default function AdminJobsPage() {
                     </div>
                 </div>
             )}
+            <JobDescriptionDrawer
+                job={selectedJob}
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+            />
         </div>
     );
 }

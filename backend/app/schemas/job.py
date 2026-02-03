@@ -20,6 +20,7 @@ class JobCreate(BaseModel):
     ctc: Optional[str] = Field(None, max_length=50, description="e.g., '12-15 LPA'")
     min_cgpa: Optional[float] = Field(0, ge=0, le=10)
     jd_link: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None)
     is_active: bool = True
 
 
@@ -30,6 +31,7 @@ class JobUpdate(BaseModel):
     ctc: Optional[str] = Field(None, max_length=50)
     min_cgpa: Optional[float] = Field(None, ge=0, le=10)
     jd_link: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None)
     is_active: Optional[bool] = None
 
 
@@ -46,6 +48,7 @@ class JobResponse(BaseModel):
     min_cgpa: float
     is_active: bool
     jd_link: Optional[str]
+    description: Optional[str]
     created_at: datetime
     
     class Config:

@@ -80,6 +80,7 @@ class Job(Base):
     min_cgpa = Column(Float, default=0)
     is_active = Column(Boolean, default=True, index=True)
     jd_link = Column(Text)
+    description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

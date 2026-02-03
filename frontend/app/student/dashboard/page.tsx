@@ -14,6 +14,7 @@ interface Job {
     min_cgpa: number;
     is_active: boolean;
     jd_link: string | null;
+    description: string | null;
     created_at: string;
 }
 

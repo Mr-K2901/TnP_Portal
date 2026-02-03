@@ -39,6 +39,7 @@ def create_job(
         ctc=payload.ctc,
         min_cgpa=payload.min_cgpa or 0,
         jd_link=payload.jd_link,
+        description=payload.description,
         is_active=payload.is_active
     )
     

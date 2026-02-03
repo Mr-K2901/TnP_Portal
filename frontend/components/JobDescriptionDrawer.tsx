@@ -17,6 +17,7 @@ interface JobFull {
     ctc: string | null;
     min_cgpa: number;
     jd_link: string | null;
+    description: string | null;
 }
 
 interface JobDescriptionDrawerProps {
@@ -64,6 +65,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
         ...job,
         min_cgpa: 0,
         jd_link: null,
+        description: null
     };
 
     return (
@@ -185,9 +187,40 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                             {/* Description Section */}
                             <div style={{ marginBottom: '24px' }}>
                                 <div style={{ fontSize: '12px', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
-                                    Description
+                                    Description Summary
                                 </div>
+                                {fullJob?.description ? (
+                                    <div style={{
+                                        padding: '16px',
+                                        backgroundColor: '#f1f5f9',
+                                        borderRadius: '10px',
+                                        color: colors.text,
+                                        fontSize: '14px',
+                                        lineHeight: '1.6',
+                                        border: `1px solid ${colors.border}`,
+                                        whiteSpace: 'pre-wrap',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {fullJob.description}
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        padding: '16px',
+                                        backgroundColor: colors.background,
+                                        borderRadius: '10px',
+                                        color: colors.textMuted,
+                                        fontSize: '14px',
+                                        textAlign: 'center',
+                                        border: `1px solid ${colors.border}`,
+                                        marginBottom: '16px'
+                                    }}>
+                                        No text description provided
+                                    </div>
+                                )}
 
+                                <div style={{ fontSize: '12px', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+                                    Job Links
+                                </div>
                                 {fullJob?.jd_link ? (
                                     <a
                                         href={fullJob.jd_link}
@@ -208,7 +241,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                                         }}
                                     >
                                         <span style={{ fontSize: '18px' }}>📄</span>
-                                        View Full Job Description
+                                        View Full JD / Application Link
                                         <span style={{ marginLeft: 'auto', fontSize: '14px' }}>↗</span>
                                     </a>
                                 ) : (
@@ -221,7 +254,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                                         textAlign: 'center',
                                         border: `1px solid ${colors.border}`,
                                     }}>
-                                        No description available
+                                        No external links provided
                                     </div>
                                 )}
                             </div>

@@ -25,9 +25,10 @@ export async function apiFetch<T>(
     options: FetchOptions = {}
 ): Promise<T> {
     const { requireAuth = true, ...fetchOptions } = options;
+    const isFormData = fetchOptions.body instanceof FormData;
 
     const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
     };
 
@@ -63,8 +64,15 @@ export const api = {
     get: <T>(endpoint: string, options?: FetchOptions) =>
         apiFetch<T>(endpoint, { ...options, method: 'GET' }),
 
-    post: <T>(endpoint: string, body: unknown, options?: FetchOptions) =>
-        apiFetch<T>(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }),
+    post: <T>(endpoint: string, body: unknown, options?: FetchOptions) => {
+        const fetchOptions: FetchOptions = { ...options, method: 'POST' };
+        if (body instanceof FormData) {
+            fetchOptions.body = body;
+        } else {
+            fetchOptions.body = JSON.stringify(body);
+        }
+        return apiFetch<T>(endpoint, fetchOptions);
+    },
 
     patch: <T>(endpoint: string, body: unknown, options?: FetchOptions) =>
         apiFetch<T>(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) }),

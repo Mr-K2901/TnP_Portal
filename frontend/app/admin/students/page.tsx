@@ -52,6 +52,8 @@ export default function AdminStudentsPage() {
     const [minCgpa, setMinCgpa] = useState('');
     const [maxCgpa, setMaxCgpa] = useState('');
     const [placedFilter, setPlacedFilter] = useState<'all' | 'placed' | 'not_placed'>('all');
+    const [nameSearch, setNameSearch] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     // Options
     const [courses, setCourses] = useState<string[]>([]);
@@ -60,6 +62,11 @@ export default function AdminStudentsPage() {
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+
+    // Import state
+    const [importing, setImporting] = useState(false);
+    const [importSummary, setImportSummary] = useState<{ success_count: number; failure_count: number; errors: string[] } | null>(null);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -90,6 +97,7 @@ export default function AdminStudentsPage() {
     };
 
     const filteredStudents = allStudents.filter(student => {
+        if (nameSearch && !student.full_name.toLowerCase().includes(nameSearch.toLowerCase())) return false;
         if (courseFilter && student.branch !== courseFilter) return false;
         if (departmentFilter && student.department !== departmentFilter) return false;
         if (minCgpa && (student.cgpa === null || student.cgpa < parseFloat(minCgpa))) return false;
@@ -113,6 +121,7 @@ export default function AdminStudentsPage() {
         setMinCgpa('');
         setMaxCgpa('');
         setPlacedFilter('all');
+        setNameSearch('');
         setCurrentPage(1);
     };
 
@@ -135,6 +144,76 @@ export default function AdminStudentsPage() {
             pages.push(totalPages);
         }
         return pages;
+    };
+
+    const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        setImportSummary(null);
+        setError('');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await api.post<{ success_count: number; failure_count: number; errors: string[] }>(
+                '/admin/students/import',
+                formData
+            );
+            setImportSummary(response);
+            if (response.success_count > 0) {
+                fetchStudents(); // Refresh the list
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to import students');
+        } finally {
+            setImporting(false);
+            // Reset file input
+            e.target.value = '';
+        }
+    };
+
+    const handleExport = () => {
+        if (filteredStudents.length === 0) {
+            alert('No data to export with current filters.');
+            return;
+        }
+
+        const fileName = prompt('Enter filename for export:', 'student_directory_export');
+        if (!fileName) return;
+
+        // CSV Headers
+        const headers = ['Full Name', 'Email', 'Department', 'Course', 'CGPA', 'Status', 'Jobs Applied'];
+
+        // CSV Rows
+        const rows = filteredStudents.map(s => [
+            s.full_name,
+            s.email,
+            s.department || '-',
+            s.branch,
+            s.cgpa ?? '-',
+            s.is_placed ? 'Placed' : 'Active',
+            s.applications_count
+        ]);
+
+        // Combine into CSV string
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${fileName.replace(/\.[^/.]+$/, "")}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (loading) {
@@ -162,9 +241,51 @@ export default function AdminStudentsPage() {
 
             {/* Main Content */}
             <main style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ marginBottom: '24px' }}>
-                    <h2 style={{ color: colors.text, fontSize: '28px', fontWeight: 600, margin: 0 }}>Student Directory</h2>
-                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0' }}>View and filter all registered students</p>
+                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h2 style={{ color: colors.text, fontSize: '28px', fontWeight: 600, margin: 0 }}>Student Directory</h2>
+                        <p style={{ color: colors.textMuted, margin: '4px 0 0 0' }}>View and filter all registered students</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                            onClick={handleExport}
+                            style={{
+                                backgroundColor: '#fff',
+                                color: colors.text,
+                                border: `1px solid ${colors.border}`,
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}
+                        >
+                            <span>📊</span> Export Data
+                        </button>
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            style={{
+                                backgroundColor: colors.primary,
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+                            }}
+                        >
+                            <span></span> Import Students
+                        </button>
+                    </div>
                 </div>
 
                 {error && (
@@ -221,9 +342,103 @@ export default function AdminStudentsPage() {
                         </select>
                     </div>
 
-                    <button onClick={handleClearFilters} style={{ padding: '10px 16px', backgroundColor: colors.secondary, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
-                        Clear Filters
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div>
+                            {/* Empty label to maintain alignment with labeled filters */}
+                            <div style={{ height: '18px', marginBottom: '6px' }}></div>
+                            <button
+                                onClick={handleClearFilters}
+                                style={{
+                                    padding: '10px 16px',
+                                    height: '40px',
+                                    backgroundColor: colors.secondary,
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search Name</label>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                backgroundColor: '#fff',
+                                border: `1px solid ${showSearch ? colors.primary : colors.border}`,
+                                borderRadius: '8px',
+                                padding: '0 12px',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                width: showSearch ? '280px' : '40px',
+                                height: '40px',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                            }}>
+                                <button
+                                    onClick={() => setShowSearch(!showSearch)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: showSearch ? colors.primary : colors.textMuted,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0,
+                                        zIndex: 2,
+                                        minWidth: '18px'
+                                    }}
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                                    </svg>
+                                </button>
+                                <input
+                                    autoFocus={showSearch}
+                                    type="text"
+                                    placeholder="Type student name..."
+                                    value={nameSearch}
+                                    onChange={(e) => { setNameSearch(e.target.value); handleFilterChange(); }}
+                                    style={{
+                                        border: 'none',
+                                        background: 'none',
+                                        outline: 'none',
+                                        marginLeft: '12px',
+                                        fontSize: '14px',
+                                        width: '100%',
+                                        color: colors.text,
+                                        opacity: showSearch ? 1 : 0,
+                                        transition: 'opacity 0.2s ease',
+                                        pointerEvents: showSearch ? 'auto' : 'none'
+                                    }}
+                                />
+                                {showSearch && nameSearch && (
+                                    <button
+                                        onClick={() => { setNameSearch(''); handleFilterChange(); }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '18px',
+                                            color: colors.textMuted,
+                                            padding: '0 4px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Table Controls */}
@@ -307,6 +522,120 @@ export default function AdminStudentsPage() {
                     Page {currentPage} of {totalPages || 1}
                 </p>
             </main>
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '24px'
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '32px',
+                        borderRadius: '20px',
+                        width: '100%',
+                        maxWidth: '550px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        position: 'relative'
+                    }}>
+                        <button
+                            onClick={() => { setShowImportModal(false); setImportSummary(null); }}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', fontSize: '24px', color: colors.textMuted, cursor: 'pointer' }}
+                        >
+                            ×
+                        </button>
+
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 700, color: colors.text }}>Import Students</h3>
+                        <p style={{ color: colors.textMuted, fontSize: '15px', marginBottom: '24px', lineHeight: 1.5 }}>
+                            Upload a <strong>CSV or Excel</strong> file with student details. Required columns: <strong>full_name, email, branch</strong>. Optional: <strong>department, cgpa, password</strong>.
+                        </p>
+
+                        {!importSummary ? (
+                            <div style={{
+                                border: `2px dashed ${colors.border}`,
+                                borderRadius: '12px',
+                                padding: '40px 20px',
+                                textAlign: 'center',
+                                backgroundColor: '#f8fafc',
+                                transition: 'all 0.2s'
+                            }}>
+                                <input
+                                    type="file"
+                                    accept=".csv, .xlsx, .xls"
+                                    onChange={handleImportFile}
+                                    id="csv-upload"
+                                    style={{ display: 'none' }}
+                                />
+                                <label
+                                    htmlFor="csv-upload"
+                                    style={{
+                                        cursor: importing ? 'not-allowed' : 'pointer',
+                                        display: 'inline-flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '12px'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '40px' }}>📄</span>
+                                    <span style={{ fontWeight: 600, color: colors.primary }}>{importing ? 'Processing...' : 'Click to select CSV/Excel file'}</span>
+                                    <span style={{ fontSize: '13px', color: colors.textMuted }}>Supported: .csv, .xlsx, .xls</span>
+                                </label>
+                            </div>
+                        ) : (
+                            <div>
+                                <div style={{
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    backgroundColor: importSummary.failure_count === 0 ? '#f0fdf4' : '#fff7ed',
+                                    border: `1px solid ${importSummary.failure_count === 0 ? '#bbf7d0' : '#ffedd5'}`,
+                                    marginBottom: '20px'
+                                }}>
+                                    <p style={{ fontWeight: 600, color: importSummary.failure_count === 0 ? '#166534' : '#9a3412', margin: '0 0 8px 0' }}>
+                                        Import Summary
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '20px', fontSize: '14px' }}>
+                                        <span style={{ color: '#166534' }}>✅ Success: <strong>{importSummary.success_count}</strong></span>
+                                        <span style={{ color: '#9a3412' }}>❌ Failed: <strong>{importSummary.failure_count}</strong></span>
+                                    </div>
+                                </div>
+
+                                {importSummary.errors.length > 0 && (
+                                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.border}`, borderRadius: '8px', padding: '12px' }}>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 600, color: colors.danger }}>Errors:</p>
+                                        <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '13px', color: colors.textMuted }}>
+                                            {importSummary.errors.map((err, i) => <li key={i} style={{ marginBottom: '4px' }}>{err}</li>)}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => { setShowImportModal(false); setImportSummary(null); }}
+                                    style={{
+                                        marginTop: '24px',
+                                        width: '100%',
+                                        padding: '12px',
+                                        backgroundColor: colors.primary,
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '10px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
