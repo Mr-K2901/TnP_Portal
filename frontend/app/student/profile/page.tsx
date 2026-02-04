@@ -144,7 +144,7 @@ export default function StudentProfilePage() {
 
             <main style={{ padding: '60px 20px', maxWidth: '900px', margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <h2 style={{ margin: 0, fontSize: '37px', color: colors.text, fontWeight: 800, letterSpacing: '-0.02em' }}>Student Profile</h2>
+                    <h2 style={{ margin: 0, fontSize: '28px', color: colors.text, fontWeight: 700, letterSpacing: '-0.02em' }}>Student Profile</h2>
                     {!isEditing && (
                         <button
                             onClick={() => setIsEditing(true)}
@@ -154,7 +154,7 @@ export default function StudentProfilePage() {
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '10px',
-                                fontSize: '17px',
+                                fontSize: '20px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
@@ -223,7 +223,7 @@ export default function StudentProfilePage() {
                                         value={formData.full_name}
                                         onChange={(e) => setFormData(p => ({ ...p, full_name: e.target.value }))}
                                         required
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -234,7 +234,7 @@ export default function StudentProfilePage() {
                                         value={formData.department}
                                         onChange={(e) => setFormData(p => ({ ...p, department: e.target.value }))}
                                         placeholder="e.g. Engineering"
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -246,7 +246,7 @@ export default function StudentProfilePage() {
                                         onChange={(e) => setFormData(p => ({ ...p, branch: e.target.value }))}
                                         required
                                         placeholder="e.g. CSE"
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -260,13 +260,13 @@ export default function StudentProfilePage() {
                                         value={formData.cgpa}
                                         onChange={(e) => setFormData(p => ({ ...p, cgpa: e.target.value }))}
                                         required
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
                                     />
                                 </div>
 
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '10px', fontSize: '15px', fontWeight: 700, color: colors.text, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Placement Status</label>
-                                    <div style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', backgroundColor: '#f5f5f5', color: colors.textMuted, cursor: 'not-allowed' }}>
+                                    <div style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', backgroundColor: '#f5f5f5', color: colors.textMuted, cursor: 'not-allowed', boxSizing: 'border-box' }}>
                                         {profile?.is_placed ? 'Placed' : 'Seeking Opportunity'} (Admin Only)
                                     </div>
                                 </div>
@@ -278,7 +278,7 @@ export default function StudentProfilePage() {
                                         value={formData.resume_url}
                                         onChange={(e) => setFormData(p => ({ ...p, resume_url: e.target.value }))}
                                         placeholder="https://drive.google.com/..."
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
                                     />
                                 </div>
                             </div>

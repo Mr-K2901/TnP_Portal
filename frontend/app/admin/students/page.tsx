@@ -309,7 +309,7 @@ export default function AdminStudentsPage() {
                 }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Department</label>
-                        <select value={departmentFilter} onChange={(e) => { setDepartmentFilter(e.target.value); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '150px', fontSize: '14px', backgroundColor: '#fff' }}>
+                        <select value={departmentFilter} onChange={(e) => { setDepartmentFilter(e.target.value); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '150px', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}>
                             <option value="">All Departments</option>
                             {departments.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
@@ -317,7 +317,7 @@ export default function AdminStudentsPage() {
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</label>
-                        <select value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '150px', fontSize: '14px', backgroundColor: '#fff' }}>
+                        <select value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '150px', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}>
                             <option value="">All Courses</option>
                             {courses.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
@@ -325,17 +325,17 @@ export default function AdminStudentsPage() {
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Min CGPA</label>
-                        <input type="number" step="0.1" min="0" max="10" value={minCgpa} onChange={(e) => { setMinCgpa(e.target.value); handleFilterChange(); }} placeholder="0" style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, width: '80px', fontSize: '14px' }} />
+                        <input type="number" step="0.1" min="0" max="10" value={minCgpa} onChange={(e) => { setMinCgpa(e.target.value); handleFilterChange(); }} placeholder="0" style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, width: '80px', fontSize: '14px', boxSizing: 'border-box' }} />
                     </div>
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Max CGPA</label>
-                        <input type="number" step="0.1" min="0" max="10" value={maxCgpa} onChange={(e) => { setMaxCgpa(e.target.value); handleFilterChange(); }} placeholder="10" style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, width: '80px', fontSize: '14px' }} />
+                        <input type="number" step="0.1" min="0" max="10" value={maxCgpa} onChange={(e) => { setMaxCgpa(e.target.value); handleFilterChange(); }} placeholder="10" style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, width: '80px', fontSize: '14px', boxSizing: 'border-box' }} />
                     </div>
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Placement</label>
-                        <select value={placedFilter} onChange={(e) => { setPlacedFilter(e.target.value as 'all' | 'placed' | 'not_placed'); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '120px', fontSize: '14px', backgroundColor: '#fff' }}>
+                        <select value={placedFilter} onChange={(e) => { setPlacedFilter(e.target.value as 'all' | 'placed' | 'not_placed'); handleFilterChange(); }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${colors.border}`, minWidth: '120px', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}>
                             <option value="all">All</option>
                             <option value="placed">Placed</option>
                             <option value="not_placed">Not Placed</option>

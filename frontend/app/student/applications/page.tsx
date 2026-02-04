@@ -255,7 +255,8 @@ export default function StudentApplicationsPage() {
                                 color: colors.text,
                                 opacity: showSearch ? 1 : 0,
                                 transition: 'opacity 0.2s ease',
-                                pointerEvents: showSearch ? 'auto' : 'none'
+                                pointerEvents: showSearch ? 'auto' : 'none',
+                                boxSizing: 'border-box'
                             }}
                         />
                         {showSearch && searchTerm && (

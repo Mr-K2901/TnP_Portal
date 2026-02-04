@@ -301,9 +301,11 @@ export default function StudentDashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    boxSizing: 'border-box',
+                    width: '100%'
                 }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                         <input
                             type="text"
                             placeholder="Search by company or role..."
@@ -316,7 +318,8 @@ export default function StudentDashboardPage() {
                                 border: `1px solid ${colors.border}`,
                                 fontSize: '15px',
                                 outline: 'none',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                boxSizing: 'border-box'
                             }}
                         />
                         <svg

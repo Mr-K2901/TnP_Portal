@@ -477,7 +477,7 @@ export default function AdminJobsPage() {
                                             onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
                                             required
                                             placeholder="e.g. Software Engineer"
-                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                 </div>
@@ -494,7 +494,7 @@ export default function AdminJobsPage() {
                                             value={formData.ctc}
                                             onChange={(e) => setFormData(prev => ({ ...prev, ctc: e.target.value }))}
                                             placeholder="e.g. 12-15 LPA"
-                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                     <div>
@@ -506,7 +506,7 @@ export default function AdminJobsPage() {
                                             max="10"
                                             value={formData.min_cgpa}
                                             onChange={(e) => setFormData(prev => ({ ...prev, min_cgpa: e.target.value }))}
-                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                 </div>
@@ -523,7 +523,7 @@ export default function AdminJobsPage() {
                                             value={formData.jd_link}
                                             onChange={(e) => setFormData(prev => ({ ...prev, jd_link: e.target.value }))}
                                             placeholder="https://company.com/career/job-details"
-                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                     <div>
@@ -533,7 +533,7 @@ export default function AdminJobsPage() {
                                             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                             placeholder="Briefly describe the key responsibilities and benefits..."
                                             rows={4}
-                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', resize: 'vertical', outline: 'none' }}
+                                            style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                 </div>
@@ -878,7 +878,7 @@ export default function AdminJobsPage() {
                                                 value={editFormData.company_name}
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, company_name: e.target.value }))}
                                                 required
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div>
@@ -888,7 +888,7 @@ export default function AdminJobsPage() {
                                                 value={editFormData.role}
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
                                                 required
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div style={{ gridColumn: 'span 2' }}>
@@ -945,7 +945,7 @@ export default function AdminJobsPage() {
                                                 type="text"
                                                 value={editFormData.ctc}
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, ctc: e.target.value }))}
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div>
@@ -957,7 +957,7 @@ export default function AdminJobsPage() {
                                                 max="10"
                                                 value={editFormData.min_cgpa}
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, min_cgpa: e.target.value }))}
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                     </div>
@@ -974,7 +974,7 @@ export default function AdminJobsPage() {
                                                 value={editFormData.jd_link}
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, jd_link: e.target.value }))}
                                                 placeholder="https://..."
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div>
@@ -984,7 +984,7 @@ export default function AdminJobsPage() {
                                                 onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
                                                 placeholder="Briefly describe the key responsibilities and benefits..."
                                                 rows={4}
-                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', resize: 'vertical', outline: 'none' }}
+                                                style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                     </div>

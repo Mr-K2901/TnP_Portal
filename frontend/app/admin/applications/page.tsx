@@ -66,6 +66,8 @@ export default function AdminApplicationsPage() {
     const [error, setError] = useState('');
     const [actionInProgress, setActionInProgress] = useState<string | null>(null);
     const [placedStudents, setPlacedStudents] = useState<Set<string>>(new Set());
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -201,7 +203,7 @@ export default function AdminApplicationsPage() {
             {/* Header */}
             <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Admin</h1>
+                    <h1 style={{ color: '#fff', fontSize: '28px', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>TnP Admin</h1>
                     <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                         <a href="/admin" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
                         <a href="/admin/students" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Students</a>
@@ -224,35 +226,101 @@ export default function AdminApplicationsPage() {
                     </div>
                 )}
 
-                {/* Job Selector */}
+                {/* Controls Bar */}
                 <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
                     backgroundColor: colors.card,
                     padding: '16px 20px',
                     borderRadius: '12px',
                     marginBottom: '20px',
                     border: `1px solid ${colors.border}`,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    gap: '20px',
+                    flexWrap: 'wrap'
                 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select Job</label>
-                    <select
-                        value={selectedJobId}
-                        onChange={(e) => setSelectedJobId(e.target.value)}
-                        style={{
-                            padding: '10px 14px',
-                            fontSize: '14px',
-                            border: `1px solid ${colors.border}`,
+                    <div style={{ flex: 1, minWidth: '300px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select Job</label>
+                        <select
+                            value={selectedJobId}
+                            onChange={(e) => setSelectedJobId(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                fontSize: '14px',
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '8px',
+                                backgroundColor: '#fff',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <option value="">-- Select a job --</option>
+                            {jobs.map(job => (
+                                <option key={job.id} value={job.id}>
+                                    {job.company_name} - {job.role}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={{ minWidth: '40px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search Name</label>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            backgroundColor: '#fff',
+                            border: `1px solid ${showSearch ? colors.primary : colors.border}`,
                             borderRadius: '8px',
-                            minWidth: '350px',
-                            backgroundColor: '#fff'
-                        }}
-                    >
-                        <option value="">-- Select a job --</option>
-                        {jobs.map(job => (
-                            <option key={job.id} value={job.id}>
-                                {job.company_name} - {job.role}
-                            </option>
-                        ))}
-                    </select>
+                            padding: '0 12px',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            width: showSearch ? '240px' : '40px',
+                            height: '40px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                        }}>
+                            <button
+                                onClick={() => setShowSearch(!showSearch)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: showSearch ? colors.primary : colors.textMuted,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 0,
+                                    zIndex: 2,
+                                    minWidth: '18px'
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                                </svg>
+                            </button>
+                            <input
+                                autoFocus={showSearch}
+                                type="text"
+                                placeholder="Search student email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    outline: 'none',
+                                    marginLeft: '12px',
+                                    fontSize: '14px',
+                                    width: '100%',
+                                    color: colors.text,
+                                    opacity: showSearch ? 1 : 0,
+                                    transition: 'opacity 0.2s ease',
+                                    pointerEvents: showSearch ? 'auto' : 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Selected Job Info */}
@@ -295,63 +363,65 @@ export default function AdminApplicationsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {applications.map((app, idx) => {
-                                    const isPlaced = placedStudents.has(app.student_id);
-                                    const isProcessing = actionInProgress === app.student_id;
+                                {applications
+                                    .filter(app => app.student?.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .map((app, idx) => {
+                                        const isPlaced = placedStudents.has(app.student_id);
+                                        const isProcessing = actionInProgress === app.student_id;
 
-                                    return (
-                                        <tr key={app.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>
-                                                {app.student?.email || 'Unknown'}
-                                            </td>
-                                            <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>
-                                                {formatDate(app.applied_at)}
-                                            </td>
-                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                                                {getStatusBadge(app.status)}
-                                            </td>
-                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                                                {isPlaced ? (
-                                                    <button
-                                                        onClick={() => app.student && handleRevokePlacement(app.student_id, app.student.email)}
-                                                        disabled={isProcessing || !app.student}
-                                                        style={{
-                                                            padding: '10px 20px',
-                                                            minWidth: '120px',
-                                                            backgroundColor: isProcessing ? '#f1f5f9' : '#fef2f2',
-                                                            color: isProcessing ? '#94a3b8' : colors.danger,
-                                                            border: 'none',
-                                                            borderRadius: '6px',
-                                                            cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                            fontSize: '15px',
-                                                            fontWeight: 500
-                                                        }}
-                                                    >
-                                                        {isProcessing ? '...' : 'Revoke'}
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => app.student && handleMarkPlaced(app.student_id, app.student.email)}
-                                                        disabled={isProcessing || !app.student}
-                                                        style={{
-                                                            padding: '10px 20px',
-                                                            minWidth: '120px',
-                                                            backgroundColor: isProcessing ? '#f1f5f9' : '#dcfce7',
-                                                            color: isProcessing ? '#94a3b8' : '#166534',
-                                                            border: 'none',
-                                                            borderRadius: '6px',
-                                                            cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                            fontSize: '15px',
-                                                            fontWeight: 500
-                                                        }}
-                                                    >
-                                                        {isProcessing ? '...' : 'Mark Placed'}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                        return (
+                                            <tr key={app.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                                <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>
+                                                    {app.student?.email || 'Unknown'}
+                                                </td>
+                                                <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>
+                                                    {formatDate(app.applied_at)}
+                                                </td>
+                                                <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                    {getStatusBadge(app.status)}
+                                                </td>
+                                                <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                    {isPlaced ? (
+                                                        <button
+                                                            onClick={() => app.student && handleRevokePlacement(app.student_id, app.student.email)}
+                                                            disabled={isProcessing || !app.student}
+                                                            style={{
+                                                                padding: '10px 20px',
+                                                                minWidth: '120px',
+                                                                backgroundColor: isProcessing ? '#f1f5f9' : '#fef2f2',
+                                                                color: isProcessing ? '#94a3b8' : colors.danger,
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                                fontSize: '15px',
+                                                                fontWeight: 500
+                                                            }}
+                                                        >
+                                                            {isProcessing ? '...' : 'Revoke'}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => app.student && handleMarkPlaced(app.student_id, app.student.email)}
+                                                            disabled={isProcessing || !app.student}
+                                                            style={{
+                                                                padding: '10px 20px',
+                                                                minWidth: '120px',
+                                                                backgroundColor: isProcessing ? '#f1f5f9' : '#dcfce7',
+                                                                color: isProcessing ? '#94a3b8' : '#166534',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                                fontSize: '15px',
+                                                                fontWeight: 500
+                                                            }}
+                                                        >
+                                                            {isProcessing ? '...' : 'Mark Placed'}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                             </tbody>
                         </table>
 
