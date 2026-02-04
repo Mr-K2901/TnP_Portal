@@ -75,6 +75,7 @@ export default function StudentDashboardPage() {
     const PAGE_SIZE_OPTIONS = [10, 25, 50];
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Drawer state
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -226,6 +227,17 @@ export default function StudentDashboardPage() {
         );
     }
 
+    // Filter jobs
+    const filteredJobs = jobs.filter(job =>
+        job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.role.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalRecords = filteredJobs.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const paginatedJobs = filteredJobs.slice(startIndex, startIndex + pageSize);
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
             {/* Header */}
@@ -236,6 +248,7 @@ export default function StudentDashboardPage() {
                         <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
                         <a href="/student/dashboard" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Browse Jobs</a>
                         <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
+                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
                         <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
                     </nav>
                 </div>
@@ -279,10 +292,61 @@ export default function StudentDashboardPage() {
                     </div>
                 )}
 
+                <div style={{
+                    backgroundColor: colors.card,
+                    padding: '20px',
+                    borderRadius: '12px',
+                    marginBottom: '24px',
+                    border: `1px solid ${colors.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                            type="text"
+                            placeholder="Search by company or role..."
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px 12px 40px',
+                                borderRadius: '10px',
+                                border: `1px solid ${colors.border}`,
+                                fontSize: '15px',
+                                outline: 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        />
+                        <svg
+                            style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
+                            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                        </svg>
+                    </div>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: colors.primary,
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Clear Search
+                        </button>
+                    )}
+                </div>
+
                 {/* Table Controls */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <div style={{ fontSize: '14px', color: colors.textMuted }}>
-                        Showing {jobs.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, jobs.length)} of {jobs.length} jobs
+                        Showing {totalRecords > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + pageSize, totalRecords)} of {totalRecords} jobs
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '14px', color: colors.textMuted }}>Show:</span>
@@ -294,8 +358,8 @@ export default function StudentDashboardPage() {
 
                 {/* Jobs Table */}
                 <div style={{ backgroundColor: colors.card, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                    {jobs.length === 0 ? (
-                        <p style={{ padding: '40px', textAlign: 'center', color: colors.textMuted, margin: 0 }}>No jobs available at the moment.</p>
+                    {filteredJobs.length === 0 ? (
+                        <p style={{ padding: '40px', textAlign: 'center', color: colors.textMuted, margin: 0 }}>No jobs matching your search.</p>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -308,7 +372,7 @@ export default function StudentDashboardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((job, idx) => {
+                                {paginatedJobs.map((job, idx) => {
                                     const eligible = isEligible(job);
                                     const hasApplied = applicationStatus.has(job.id);
                                     return (
@@ -358,7 +422,7 @@ export default function StudentDashboardPage() {
                     )}
                     <div style={{ padding: '16px 20px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ color: colors.textMuted, fontSize: '14px' }}>
-                            Page {currentPage} of {Math.ceil(jobs.length / pageSize) || 1}
+                            Page {currentPage} of {totalPages || 1}
                         </span>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button
@@ -377,15 +441,15 @@ export default function StudentDashboardPage() {
                                 Previous
                             </button>
                             <button
-                                onClick={() => setCurrentPage(p => Math.min(Math.ceil(jobs.length / pageSize), p + 1))}
-                                disabled={currentPage >= Math.ceil(jobs.length / pageSize)}
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage >= totalPages}
                                 style={{
                                     padding: '8px 16px',
                                     borderRadius: '6px',
                                     border: `1px solid ${colors.border}`,
-                                    backgroundColor: currentPage >= Math.ceil(jobs.length / pageSize) ? '#f1f5f9' : colors.card,
-                                    color: currentPage >= Math.ceil(jobs.length / pageSize) ? '#94a3b8' : colors.text,
-                                    cursor: currentPage >= Math.ceil(jobs.length / pageSize) ? 'not-allowed' : 'pointer',
+                                    backgroundColor: currentPage >= totalPages ? '#f1f5f9' : colors.card,
+                                    color: currentPage >= totalPages ? '#94a3b8' : colors.text,
+                                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
                                     fontSize: '14px'
                                 }}
                             >

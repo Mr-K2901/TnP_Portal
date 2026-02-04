@@ -126,6 +126,7 @@ export default function StudentHomePage() {
                         <a href="/student" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Home</a>
                         <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
                         <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
+                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
                         <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
                     </nav>
                 </div>

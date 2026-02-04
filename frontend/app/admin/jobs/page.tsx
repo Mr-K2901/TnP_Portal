@@ -52,6 +52,8 @@ export default function AdminJobsPage() {
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [companySearch, setCompanySearch] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -66,6 +68,7 @@ export default function AdminJobsPage() {
         min_cgpa: '0',
         jd_link: '',
         description: '',
+        is_active: true,
     });
     const [creating, setCreating] = useState(false);
 
@@ -82,6 +85,7 @@ export default function AdminJobsPage() {
         min_cgpa: '0',
         jd_link: '',
         description: '', // JD Summary Text
+        is_active: true,
     });
     const [saving, setSaving] = useState(false);
 
@@ -111,10 +115,16 @@ export default function AdminJobsPage() {
     const handleToggleActive = async (job: Job) => {
         setTogglingId(job.id);
         try {
-            await api.put(`/jobs/${job.id}`, { is_active: !job.is_active });
+            const newStatus = !job.is_active;
+            await api.put(`/jobs/${job.id}`, { is_active: newStatus });
             setJobs(prev => prev.map(j =>
-                j.id === job.id ? { ...j, is_active: !j.is_active } : j
+                j.id === job.id ? { ...j, is_active: newStatus } : j
             ));
+
+            // If we are currently editing this job, update the modal state too
+            if (editingJob && editingJob.id === job.id) {
+                setEditFormData(prev => ({ ...prev, is_active: newStatus }));
+            }
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to update job');
         } finally {
@@ -137,7 +147,7 @@ export default function AdminJobsPage() {
 
             setJobs(prev => [newJob, ...prev]);
             setShowForm(false);
-            setFormData({ company_name: '', role: '', ctc: '', min_cgpa: '0', jd_link: '', description: '' });
+            setFormData({ company_name: '', role: '', ctc: '', min_cgpa: '0', jd_link: '', description: '', is_active: true });
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to create job');
         } finally {
@@ -154,6 +164,7 @@ export default function AdminJobsPage() {
             min_cgpa: String(job.min_cgpa),
             jd_link: job.jd_link || '',
             description: job.description || '',
+            is_active: job.is_active,
         });
     };
 
@@ -169,6 +180,7 @@ export default function AdminJobsPage() {
                 min_cgpa: parseFloat(editFormData.min_cgpa) || 0,
                 jd_link: editFormData.jd_link || null,
                 description: editFormData.description || null,
+                is_active: editFormData.is_active,
             });
 
             setJobs(prev => prev.map(j => j.id === editingJob.id ? updated : j));
@@ -187,6 +199,7 @@ export default function AdminJobsPage() {
 
     // Filter jobs client-side
     const filteredJobs = jobs.filter(job => {
+        if (companySearch && !job.company_name.toLowerCase().includes(companySearch.toLowerCase())) return false;
         if (statusFilter === 'active' && !job.is_active) return false;
         if (statusFilter === 'inactive' && job.is_active) return false;
         return true;
@@ -203,6 +216,7 @@ export default function AdminJobsPage() {
 
     const handleClearFilters = () => {
         setStatusFilter('all');
+        setCompanySearch('');
         setCurrentPage(1);
     };
 
@@ -303,7 +317,7 @@ export default function AdminJobsPage() {
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 500, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</label>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
                         <select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); handleFilterChange(); }}
@@ -313,6 +327,80 @@ export default function AdminJobsPage() {
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search Company</label>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            backgroundColor: '#fff',
+                            border: `1px solid ${showSearch ? colors.primary : colors.border}`,
+                            borderRadius: '8px',
+                            padding: '0 12px',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            width: showSearch ? '280px' : '40px',
+                            height: '40px',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                        }}>
+                            <button
+                                onClick={() => setShowSearch(!showSearch)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: showSearch ? colors.primary : colors.textMuted,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 0,
+                                    zIndex: 2,
+                                    minWidth: '18px'
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                                </svg>
+                            </button>
+                            <input
+                                autoFocus={showSearch}
+                                type="text"
+                                placeholder="Type company name..."
+                                value={companySearch}
+                                onChange={(e) => { setCompanySearch(e.target.value); handleFilterChange(); }}
+                                style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    outline: 'none',
+                                    marginLeft: '12px',
+                                    fontSize: '14px',
+                                    width: '100%',
+                                    color: colors.text,
+                                    opacity: showSearch ? 1 : 0,
+                                    transition: 'opacity 0.2s ease',
+                                    pointerEvents: showSearch ? 'auto' : 'none'
+                                }}
+                            />
+                            {showSearch && companySearch && (
+                                <button
+                                    onClick={() => { setCompanySearch(''); handleFilterChange(); }}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        color: colors.textMuted,
+                                        padding: '0 4px',
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <button
@@ -554,24 +642,7 @@ export default function AdminJobsPage() {
                                         </td>
                                         <td style={{ padding: '14px 16px', borderBottom: `1px solid ${colors.border}` }}>
                                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <button
-                                                    onClick={() => handleToggleActive(job)}
-                                                    disabled={togglingId === job.id}
-                                                    style={{
-                                                        padding: '7px 12px',
-                                                        minWidth: '95px',
-                                                        backgroundColor: job.is_active ? '#fee2e2' : '#dcfce7',
-                                                        color: job.is_active ? colors.danger : '#166534',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        cursor: togglingId === job.id ? 'not-allowed' : 'pointer',
-                                                        fontSize: '13px',
-                                                        fontWeight: 600,
-                                                        textAlign: 'center'
-                                                    }}
-                                                >
-                                                    {togglingId === job.id ? '...' : job.is_active ? 'Deactivate' : 'Activate'}
-                                                </button>
+                                                {/* Removed Activate/Deactivate button here */}
                                                 <a
                                                     href={`/admin/applications?job=${job.id}`}
                                                     style={{
@@ -757,9 +828,42 @@ export default function AdminJobsPage() {
                             ×
                         </button>
 
-                        <h2 style={{ margin: '0 0 24px 0', color: colors.text, fontWeight: 700, fontSize: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '16px' }}>
-                            Edit Job Posting
-                        </h2>
+                        <div style={{ marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '16px' }}>
+                            <h2 style={{ margin: 0, color: colors.text, fontWeight: 700, fontSize: '24px' }}>
+                                Edit Job Posting
+                            </h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
+                                <p style={{ margin: 0, color: colors.textMuted, fontSize: '13px' }}>ID: {editingJob.id.slice(0, 8)}...</p>
+                                <div style={{ width: '1px', height: '14px', backgroundColor: colors.border }}></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Job Status:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleActive(editingJob)}
+                                        disabled={togglingId === editingJob.id}
+                                        style={{
+                                            padding: '4px 12px',
+                                            borderRadius: '20px',
+                                            backgroundColor: editingJob.is_active ? '#f0fdf4' : '#fef2f2',
+                                            color: editingJob.is_active ? '#15803d' : '#b91c1c',
+                                            border: `1px solid ${editingJob.is_active ? '#dcfce7' : '#fee2e2'}`,
+                                            fontWeight: 700,
+                                            fontSize: '11px',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                            cursor: togglingId === editingJob.id ? 'not-allowed' : 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            transition: 'all 0.2s',
+                                            outline: 'none'
+                                        }}
+                                        title="Click to change job visibility"
+                                    >
+                                        {togglingId === editingJob.id ? '...' : editingJob.is_active ? 'Active' : 'Inactive'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
                         <form onSubmit={handleEditJob}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -786,6 +890,47 @@ export default function AdminJobsPage() {
                                                 required
                                                 style={{ width: '100%', padding: '12px 16px', border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '15px', outline: 'none' }}
                                             />
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' }}>Visibility Toggle</label>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditFormData(prev => ({ ...prev, is_active: true }))}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '12px',
+                                                        borderRadius: '10px',
+                                                        border: `1px solid ${editFormData.is_active ? '#10b981' : colors.border}`,
+                                                        backgroundColor: editFormData.is_active ? '#f0fdf4' : '#fff',
+                                                        color: editFormData.is_active ? '#15803d' : colors.textMuted,
+                                                        fontSize: '14px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    ACTIVE (Visible)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditFormData(prev => ({ ...prev, is_active: false }))}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '12px',
+                                                        borderRadius: '10px',
+                                                        border: `1px solid ${!editFormData.is_active ? '#ef4444' : colors.border}`,
+                                                        backgroundColor: !editFormData.is_active ? '#fef2f2' : '#fff',
+                                                        color: !editFormData.is_active ? '#b91c1c' : colors.textMuted,
+                                                        fontSize: '14px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    INACTIVE (Hidden)
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>

@@ -62,6 +62,8 @@ export default function StudentApplicationsPage() {
     const [isPlaced, setIsPlaced] = useState(false);
     const [placementCompany, setPlacementCompany] = useState('');
     const [placedApplicationId, setPlacedApplicationId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     // Drawer state
     const [selectedJob, setSelectedJob] = useState<{ id: string; company_name: string; role: string; ctc?: string | null } | null>(null);
@@ -194,6 +196,7 @@ export default function StudentApplicationsPage() {
                         <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
                         <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
                         <a href="/student/applications" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>My Applications</a>
+                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
                         <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
                     </nav>
                 </div>
@@ -201,7 +204,79 @@ export default function StudentApplicationsPage() {
 
             {/* Main Content */}
             <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-                <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: colors.text, fontWeight: 600 }}>My Applications</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ margin: 0, fontSize: '24px', color: colors.text, fontWeight: 600 }}>My Applications</h2>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: '#fff',
+                        border: `1px solid ${showSearch ? colors.primary : colors.border}`,
+                        borderRadius: '8px',
+                        padding: '0 12px',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        width: showSearch ? '240px' : '40px',
+                        height: '40px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                    }}>
+                        <button
+                            onClick={() => setShowSearch(!showSearch)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: showSearch ? colors.primary : colors.textMuted,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0,
+                                zIndex: 2,
+                                minWidth: '18px'
+                            }}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                            </svg>
+                        </button>
+                        <input
+                            autoFocus={showSearch}
+                            type="text"
+                            placeholder="Type to search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                border: 'none',
+                                background: 'none',
+                                outline: 'none',
+                                marginLeft: '12px',
+                                fontSize: '14px',
+                                width: '100%',
+                                color: colors.text,
+                                opacity: showSearch ? 1 : 0,
+                                transition: 'opacity 0.2s ease',
+                                pointerEvents: showSearch ? 'auto' : 'none'
+                            }}
+                        />
+                        {showSearch && searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    color: colors.textMuted,
+                                    padding: '0 4px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                ×
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
@@ -233,68 +308,94 @@ export default function StudentApplicationsPage() {
                             <a href="/student/dashboard" style={{ color: colors.primary, marginTop: '8px', display: 'inline-block' }}>Browse Jobs →</a>
                         </div>
                     ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#f8fafc' }}>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {applications.map((app, idx) => {
-                                    const isPlacedRow = isPlaced && app.id === placedApplicationId;
-                                    return (
-                                        <tr key={app.id} style={{ backgroundColor: isPlacedRow ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                                                <button
-                                                    onClick={() => { if (app.job) { setSelectedJob(app.job); setDrawerOpen(true); } }}
-                                                    style={{
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        color: colors.primary,
-                                                        fontSize: '16px',
-                                                        fontWeight: 500,
-                                                        cursor: 'pointer',
-                                                        textDecoration: 'underline',
-                                                        padding: 0,
-                                                    }}
-                                                >
-                                                    {app.job?.company_name || 'Unknown'}
-                                                </button>
-                                            </td>
-                                            <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{app.job?.role || 'Unknown'}</td>
-                                            <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{formatDate(app.applied_at)}</td>
-                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>{getStatusBadge(app)}</td>
-                                            <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                                                {app.status === 'APPLIED' ? (
-                                                    <button
-                                                        onClick={() => handleWithdraw(app.id)}
-                                                        disabled={withdrawingId === app.id}
-                                                        style={{
-                                                            padding: '8px 16px',
-                                                            backgroundColor: withdrawingId === app.id ? '#f1f5f9' : '#fef2f2',
-                                                            color: withdrawingId === app.id ? '#94a3b8' : colors.danger,
-                                                            border: 'none',
-                                                            borderRadius: '6px',
-                                                            cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
-                                                            fontSize: '14px',
-                                                            fontWeight: 500
-                                                        }}
-                                                    >
-                                                        {withdrawingId === app.id ? '...' : 'Withdraw'}
-                                                    </button>
-                                                ) : (
-                                                    <span style={{ color: '#cbd5e1' }}>—</span>
-                                                )}
-                                            </td>
+                        (() => {
+                            const filtered = applications.filter(app =>
+                                app.job?.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                app.job?.role.toLowerCase().includes(searchTerm.toLowerCase())
+                            );
+
+                            if (filtered.length === 0) {
+                                return (
+                                    <div style={{ padding: '40px', textAlign: 'center' }}>
+                                        <p style={{ color: colors.textMuted, margin: 0 }}>No applications matching "{searchTerm}"</p>
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            style={{ background: 'none', border: 'none', color: colors.primary, cursor: 'pointer', marginTop: '8px', textDecoration: 'underline' }}
+                                        >
+                                            Clear Search
+                                        </button>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#f8fafc' }}>
+                                            <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
+                                            <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
+                                            <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
+                                            <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
+                                            <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Action</th>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    </thead>
+                                    <tbody>
+                                        {(applications.filter(app =>
+                                            app.job?.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            app.job?.role.toLowerCase().includes(searchTerm.toLowerCase())
+                                        )).map((app, idx) => {
+                                            const isPlacedRow = isPlaced && app.id === placedApplicationId;
+                                            return (
+                                                <tr key={app.id} style={{ backgroundColor: isPlacedRow ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                                    <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                        <button
+                                                            onClick={() => { if (app.job) { setSelectedJob(app.job); setDrawerOpen(true); } }}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                color: colors.primary,
+                                                                fontSize: '16px',
+                                                                fontWeight: 500,
+                                                                cursor: 'pointer',
+                                                                textDecoration: 'underline',
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            {app.job?.company_name || 'Unknown'}
+                                                        </button>
+                                                    </td>
+                                                    <td style={{ padding: '16px 20px', color: colors.text, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{app.job?.role || 'Unknown'}</td>
+                                                    <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '16px', borderBottom: `1px solid ${colors.border}` }}>{formatDate(app.applied_at)}</td>
+                                                    <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>{getStatusBadge(app)}</td>
+                                                    <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                        {app.status === 'APPLIED' ? (
+                                                            <button
+                                                                onClick={() => handleWithdraw(app.id)}
+                                                                disabled={withdrawingId === app.id}
+                                                                style={{
+                                                                    padding: '8px 16px',
+                                                                    backgroundColor: withdrawingId === app.id ? '#f1f5f9' : '#fef2f2',
+                                                                    color: withdrawingId === app.id ? '#94a3b8' : colors.danger,
+                                                                    border: 'none',
+                                                                    borderRadius: '6px',
+                                                                    cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
+                                                                    fontSize: '14px',
+                                                                    fontWeight: 500
+                                                                }}
+                                                            >
+                                                                {withdrawingId === app.id ? '...' : 'Withdraw'}
+                                                            </button>
+                                                        ) : (
+                                                            <span style={{ color: '#cbd5e1' }}>—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            );
+                        })()
                     )}
                     <div style={{ padding: '16px', borderTop: `1px solid ${colors.border}`, color: colors.textMuted, fontSize: '14px' }}>
                         Total: {applications.length} application{applications.length !== 1 ? 's' : ''}
