@@ -84,8 +84,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ## Test Accounts
 | Role | Email | Password |
 |------|-------|----------|
-| Student | student@test.com | password123 |
-| Admin | admin@tnp.com | admin12345 |
+| Student | rahul.sharma@student.edu | password123 |
+| Admin | admin@tnp.edu | admin12345 |
 
 ## Known Design Decisions
 

@@ -27,8 +27,13 @@ interface Application {
     student: {
         id: string;
         email: string;
+        profile?: {
+            full_name: string;
+            cgpa: number | null;
+            branch: string;
+        } | null;
     } | null;
-    is_placed?: boolean;  // Will be fetched from student data
+    is_placed?: boolean;
 }
 
 interface ApplicationListResponse {
@@ -186,8 +191,8 @@ export default function AdminApplicationsPage() {
             {/* Page Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
-                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Manage Applications</h1>
-                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Review applications and manage student placements</p>
+                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Manage Applicants</h1>
+                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Review applicants and manage student placements</p>
                 </div>
             </div>
 
@@ -330,7 +335,7 @@ export default function AdminApplicationsPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ backgroundColor: colors.tableHeaderBg }}>
-                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Student</th>
+                                    <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applicant</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Action</th>
@@ -338,15 +343,37 @@ export default function AdminApplicationsPage() {
                             </thead>
                             <tbody>
                                 {applications
-                                    .filter(app => app.student?.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .filter(app => {
+                                        if (!searchTerm) return true;
+                                        const name = app.student?.profile?.full_name || app.student?.email || '';
+                                        return name.toLowerCase().includes(searchTerm.toLowerCase());
+                                    })
                                     .map((app, idx) => {
                                         const isPlaced = placedStudents.has(app.student_id);
                                         const isProcessing = actionInProgress === app.student_id;
 
                                         return (
                                             <tr key={app.id} style={{ backgroundColor: idx % 2 === 0 ? colors.card : colors.background }}>
-                                                <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>
-                                                    {app.student?.email || 'Unknown'}
+                                                <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
+                                                    <a
+                                                        href={`/admin/students?id=${app.student_id}`}
+                                                        style={{
+                                                            color: colors.primary,
+                                                            textDecoration: 'none',
+                                                            fontSize: '15px',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                                                    >
+                                                        {app.student?.profile?.full_name || app.student?.email || 'Unknown'}
+                                                    </a>
+                                                    {app.student?.profile && (
+                                                        <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>
+                                                            {app.student.profile.branch} • CGPA: {app.student.profile.cgpa?.toFixed(2) || 'N/A'}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: '16px 20px', color: colors.textMuted, fontSize: '15px', borderBottom: `1px solid ${colors.border}` }}>
                                                     {formatDate(app.applied_at)}

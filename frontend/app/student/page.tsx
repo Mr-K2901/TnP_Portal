@@ -141,7 +141,7 @@ export default function StudentHomePage() {
                         <div>
                             <h3 style={{ margin: 0, color: colors.success, fontSize: '18px' }}>Placement Confirmed</h3>
                             <p style={{ margin: '4px 0 0 0', color: colors.success, fontSize: '15px', opacity: 0.9 }}>
-                                You have been placed at <strong>{placementCompany || 'Company'}</strong>
+                                You have been placed at <strong>{placementCompany || 'your selected company'}</strong>
                             </p>
                         </div>
                     </div>

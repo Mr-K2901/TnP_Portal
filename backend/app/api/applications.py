@@ -275,10 +275,12 @@ def list_applications_for_job(
     # Get total count
     total = query.count()
     
-    # Paginate with student info
+    # Paginate with student info (including profile for name)
     applications = (
         query
-        .options(joinedload(Application.student))
+        .options(
+            joinedload(Application.student).joinedload(User.profile)
+        )
         .order_by(Application.applied_at.desc())
         .offset((page - 1) * limit)
         .limit(limit)

@@ -38,10 +38,21 @@ class JobBrief(BaseModel):
         from_attributes = True
 
 
+class ProfileBrief(BaseModel):
+    """Brief profile info for admin view."""
+    full_name: str
+    cgpa: Optional[float] = None
+    branch: str
+    
+    class Config:
+        from_attributes = True
+
+
 class StudentBrief(BaseModel):
     """Brief student info for admin view."""
     id: UUID
     email: str
+    profile: Optional[ProfileBrief] = None
     
     class Config:
         from_attributes = True

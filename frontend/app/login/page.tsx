@@ -43,8 +43,8 @@ export default function LoginPage() {
     const handleQuickLogin = async (role: 'ADMIN' | 'STUDENT') => {
         setLoading(true);
         const credentials = role === 'ADMIN'
-            ? { email: 'admin@tnp.com', password: 'admin12345' }
-            : { email: 'student@test.com', password: 'password123' };
+            ? { email: 'admin1@tnp.com', password: 'admin1234' }
+            : { email: 'student3@test.com', password: 'password123' };
 
         try {
             const response = await api.post<LoginResponse>('/auth/login', credentials, { requireAuth: false });
@@ -52,7 +52,7 @@ export default function LoginPage() {
             const payload = parseToken(response.access_token);
             router.push(payload.role === 'ADMIN' ? '/admin' : '/student');
         } catch (err) {
-            setError(`${role} login failed`);
+            setError(`${role} login failed. Please check if the backend is running and the database is seeded.`);
         } finally { setLoading(false); }
     };
 
