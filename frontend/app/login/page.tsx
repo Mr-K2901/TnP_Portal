@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { setToken, parseToken } from '@/lib/auth';
+import { useTheme } from '@/context/ThemeContext';
 
 interface LoginResponse {
     access_token: string;
@@ -11,6 +12,7 @@ interface LoginResponse {
 }
 
 export default function LoginPage() {
+    const { colors, theme } = useTheme();
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,26 +25,14 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            // Call login API
             const response = await api.post<LoginResponse>(
                 '/auth/login',
                 { email, password },
                 { requireAuth: false }
             );
-
-            // Store token
             setToken(response.access_token);
-
-            // Decode role and redirect
             const payload = parseToken(response.access_token);
-
-            if (payload.role === 'ADMIN') {
-                router.push('/admin');
-            } else if (payload.role === 'STUDENT') {
-                router.push('/student');
-            } else {
-                router.push('/');
-            }
+            router.push(payload.role === 'ADMIN' ? '/admin' : '/student');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed');
         } finally {
@@ -50,186 +40,203 @@ export default function LoginPage() {
         }
     };
 
+    const handleQuickLogin = async (role: 'ADMIN' | 'STUDENT') => {
+        setLoading(true);
+        const credentials = role === 'ADMIN'
+            ? { email: 'admin@tnp.com', password: 'admin12345' }
+            : { email: 'student@test.com', password: 'password123' };
+
+        try {
+            const response = await api.post<LoginResponse>('/auth/login', credentials, { requireAuth: false });
+            setToken(response.access_token);
+            const payload = parseToken(response.access_token);
+            router.push(payload.role === 'ADMIN' ? '/admin' : '/student');
+        } catch (err) {
+            setError(`${role} login failed`);
+        } finally { setLoading(false); }
+    };
+
     return (
-        <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-            <h1>TnP Portal - Login</h1>
-
-            <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '15px' }}>
-                    <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
-                        Email
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            fontSize: '16px',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                        }}
-                    />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                    <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
-                        Password
-                    </label>
-                    <input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            fontSize: '16px',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                        }}
-                    />
-                </div>
-
-                {error && (
+        <div style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.background,
+            fontFamily: 'sans-serif',
+            transition: 'background-color 0.3s'
+        }}>
+            <div style={{
+                width: '100%',
+                maxWidth: '400px',
+                backgroundColor: colors.card,
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                padding: '40px',
+                border: `1px solid ${colors.border}`,
+                transition: 'background-color 0.3s, border-color 0.3s'
+            }}>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{
-                        color: 'red',
-                        marginBottom: '15px',
-                        padding: '10px',
-                        backgroundColor: '#ffe6e6',
-                        borderRadius: '4px'
+                        width: '48px',
+                        height: '48px',
+                        backgroundColor: colors.primary,
+                        borderRadius: '12px',
+                        margin: '0 auto 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px'
                     }}>
-                        {error}
+                        🎓
                     </div>
-                )}
+                    <h1 style={{ margin: '0 0 8px', color: colors.text, fontSize: '24px', fontWeight: 700, letterSpacing: '-0.02em' }}>Welcome Back</h1>
+                    <p style={{ margin: 0, color: colors.textMuted, fontSize: '14px' }}>Sign in to the TnP Portal</p>
+                </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                        width: '100%',
-                        padding: '12px',
-                        fontSize: '16px',
-                        backgroundColor: loading ? '#ccc' : '#0070f3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        marginBottom: '10px'
-                    }}
-                >
-                    {loading ? 'Logging in...' : 'Login'}
-                </button>
-            </form>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                        <label htmlFor="email" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: colors.textMuted }}>Email Address</label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            placeholder="you@college.edu"
+                            style={{
+                                width: '100%',
+                                padding: '12px 14px',
+                                fontSize: '14px',
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '8px',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                                transition: 'border-color 0.2s',
+                                backgroundColor: colors.inputBg,
+                                color: colors.text
+                            }}
+                        />
+                    </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                    onClick={() => {
-                        setEmail('admin@tnp.com');
-                        setPassword('admin12345');
-                        // Small delay to ensure state update before triggering submit if we wanted to auto-submit
-                        // But let's just create a helper logic or just set values and let user click? 
-                        // User said "get directly loged in", so I'll create a dedicated function.
-                    }}
-                    type="button"
-                    style={{
-                        flex: 1,
-                        padding: '8px',
-                        fontSize: '12px',
-                        backgroundColor: '#1e293b',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Fill Admin
-                </button>
-                <button
-                    onClick={() => {
-                        setEmail('student@test.com');
-                        setPassword('password123');
-                    }}
-                    type="button"
-                    style={{
-                        flex: 1,
-                        padding: '8px',
-                        fontSize: '12px',
-                        backgroundColor: '#64748b',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Fill Student
-                </button>
-            </div>
+                    <div>
+                        <label htmlFor="password" style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: colors.textMuted }}>Password</label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            placeholder="••••••••"
+                            style={{
+                                width: '100%',
+                                padding: '12px 14px',
+                                fontSize: '14px',
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '8px',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                                transition: 'border-color 0.2s',
+                                backgroundColor: colors.inputBg,
+                                color: colors.text
+                            }}
+                        />
+                    </div>
 
-            <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
-                <p style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>Quick Login (Dev Only):</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {error && (
+                        <div style={{
+                            padding: '12px',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            color: colors.danger,
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            border: `1px solid ${colors.danger}40`
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
                     <button
-                        onClick={async () => {
-                            setLoading(true);
-                            try {
-                                const response = await api.post<LoginResponse>('/auth/login', { email: 'admin@tnp.com', password: 'admin12345' }, { requireAuth: false });
-                                setToken(response.access_token);
-                                const payload = parseToken(response.access_token);
-                                router.push(payload.role === 'ADMIN' ? '/admin' : '/');
-                            } catch (err) {
-                                setError('Admin login failed');
-                            } finally { setLoading(false); }
+                        type="submit"
+                        disabled={loading}
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            backgroundColor: loading ? colors.secondary : colors.primary,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            marginTop: '8px',
+                            transition: 'background-color 0.2s'
                         }}
+                    >
+                        {loading ? 'Signing in...' : 'Sign In'}
+                    </button>
+                </form>
+
+                <div style={{ margin: '32px 0', borderTop: `1px solid ${colors.border}`, position: 'relative' }}>
+                    <span style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: colors.card,
+                        padding: '0 12px',
+                        color: colors.textMuted,
+                        fontSize: '12px',
+                        fontWeight: 500
+                    }}>
+                        DEV ACCESS
+                    </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <button
+                        onClick={() => handleQuickLogin('ADMIN')}
                         disabled={loading}
                         style={{
                             padding: '10px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '6px',
+                            backgroundColor: colors.background,
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: '8px',
+                            color: colors.textMuted,
+                            fontSize: '13px',
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            textAlign: 'left',
-                            fontSize: '13px'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
                         }}
                     >
-                        ⚡ <strong>Login as Admin</strong> (admin@tnp.com)
+                        <span>⚡</span> Admin
                     </button>
                     <button
-                        onClick={async () => {
-                            setLoading(true);
-                            try {
-                                const response = await api.post<LoginResponse>('/auth/login', { email: 'student@test.com', password: 'password123' }, { requireAuth: false });
-                                setToken(response.access_token);
-                                const payload = parseToken(response.access_token);
-                                router.push(payload.role === 'STUDENT' ? '/student' : '/');
-                            } catch (err) {
-                                setError('Student login failed');
-                            } finally { setLoading(false); }
-                        }}
+                        onClick={() => handleQuickLogin('STUDENT')}
                         disabled={loading}
                         style={{
                             padding: '10px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '6px',
+                            backgroundColor: colors.background,
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: '8px',
+                            color: colors.textMuted,
+                            fontSize: '13px',
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            textAlign: 'left',
-                            fontSize: '13px'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
                         }}
                     >
-                        ⚡ <strong>Login as Student</strong> (student@test.com)
+                        <span>🎓</span> Student
                     </button>
                 </div>
-            </div>
-
-            <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-                <p><strong>Test Accounts:</strong></p>
-                <p>Student: student@test.com / password123</p>
-                <p>Admin: admin@tnp.com / admin12345</p>
             </div>
         </div>
     );

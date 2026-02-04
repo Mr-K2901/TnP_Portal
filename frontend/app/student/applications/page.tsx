@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import { isLoggedIn, getUserRole } from '@/lib/auth';
 import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Application {
     id: string;
@@ -36,24 +37,8 @@ interface ProfileResponse {
     is_placed: boolean;
 }
 
-// Modern color palette
-const colors = {
-    primary: '#4f46e5',
-    primaryHover: '#4338ca',
-    secondary: '#64748b',
-    success: '#10b981',
-    danger: '#ef4444',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    headerBg: '#1e293b',
-};
-
 export default function StudentApplicationsPage() {
+    const { colors } = useTheme();
     const router = useRouter();
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
@@ -122,11 +107,6 @@ export default function StudentApplicationsPage() {
         }
     };
 
-    const handleLogout = () => {
-        removeToken();
-        router.push('/login');
-    };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-IN', {
             year: 'numeric',
@@ -139,7 +119,7 @@ export default function StudentApplicationsPage() {
         if (isPlaced && app.id === placedApplicationId && app.status === 'SHORTLISTED') {
             return (
                 <span style={{
-                    backgroundColor: '#059669',
+                    backgroundColor: colors.success,
                     color: 'white',
                     padding: '8px 16px',
                     borderRadius: '6px',
@@ -153,11 +133,11 @@ export default function StudentApplicationsPage() {
         }
 
         const styles: Record<string, { bg: string; color: string; label: string }> = {
-            'APPLIED': { bg: '#fef3c7', color: '#92400e', label: 'PENDING' },
-            'SHORTLISTED': { bg: '#dcfce7', color: '#166534', label: 'SHORTLISTED' },
-            'REJECTED': { bg: '#fef2f2', color: '#991b1b', label: 'REJECTED' },
+            'APPLIED': { bg: 'rgba(245, 158, 11, 0.1)', color: colors.warning, label: 'PENDING' },
+            'SHORTLISTED': { bg: 'rgba(16, 185, 129, 0.1)', color: colors.success, label: 'SHORTLISTED' },
+            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: colors.danger, label: 'REJECTED' },
         };
-        const style = styles[app.status] || { bg: '#f1f5f9', color: '#475569', label: app.status };
+        const style = styles[app.status] || { bg: colors.secondary + '20', color: colors.textMuted, label: app.status };
         return (
             <span style={{
                 padding: '8px 16px',
@@ -167,6 +147,7 @@ export default function StudentApplicationsPage() {
                 fontWeight: 600,
                 fontSize: '13px',
                 letterSpacing: '0.3px',
+                border: `1px solid ${style.color}40`,
             }}>
                 {style.label}
             </span>
@@ -187,97 +168,88 @@ export default function StudentApplicationsPage() {
     const rejectedCount = applications.filter(a => a.status === 'REJECTED').length;
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-            {/* Header */}
-            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
-                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
-                        <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
-                        <a href="/student/applications" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>My Applications</a>
-                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
-                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
-                    </nav>
+        <div style={{ padding: '40px' }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>My Applications</h1>
+                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Track your job application status</p>
                 </div>
-            </header>
-
-            {/* Main Content */}
-            <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px', color: colors.text, fontWeight: 600 }}>My Applications</h2>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        backgroundColor: '#fff',
-                        border: `1px solid ${showSearch ? colors.primary : colors.border}`,
-                        borderRadius: '8px',
-                        padding: '0 12px',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        width: showSearch ? '240px' : '40px',
-                        height: '40px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
-                    }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: colors.inputBg,
+                    border: `1px solid ${showSearch ? colors.primary : colors.border}`,
+                    borderRadius: '8px',
+                    padding: '0 12px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    width: showSearch ? '240px' : '40px',
+                    height: '40px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxShadow: showSearch ? `0 4px 12px ${colors.primary}20` : 'none'
+                }}>
+                    <button
+                        onClick={() => setShowSearch(!showSearch)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: showSearch ? colors.primary : colors.textMuted,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                            zIndex: 2,
+                            minWidth: '18px'
+                        }}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                        </svg>
+                    </button>
+                    <input
+                        autoFocus={showSearch}
+                        type="text"
+                        placeholder="Type to search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            border: 'none',
+                            background: 'none',
+                            outline: 'none',
+                            marginLeft: '12px',
+                            fontSize: '14px',
+                            width: '100%',
+                            color: colors.text,
+                            opacity: showSearch ? 1 : 0,
+                            transition: 'opacity 0.2s ease',
+                            pointerEvents: showSearch ? 'auto' : 'none',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                    {showSearch && searchTerm && (
                         <button
-                            onClick={() => setShowSearch(!showSearch)}
+                            onClick={() => setSearchTerm('')}
                             style={{
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
-                                color: showSearch ? colors.primary : colors.textMuted,
+                                fontSize: '16px',
+                                color: colors.textMuted,
+                                padding: '0 4px',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: 0,
-                                zIndex: 2,
-                                minWidth: '18px'
+                                alignItems: 'center'
                             }}
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-                            </svg>
+                            ×
                         </button>
-                        <input
-                            autoFocus={showSearch}
-                            type="text"
-                            placeholder="Type to search..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                                border: 'none',
-                                background: 'none',
-                                outline: 'none',
-                                marginLeft: '12px',
-                                fontSize: '14px',
-                                width: '100%',
-                                color: colors.text,
-                                opacity: showSearch ? 1 : 0,
-                                transition: 'opacity 0.2s ease',
-                                pointerEvents: showSearch ? 'auto' : 'none',
-                                boxSizing: 'border-box'
-                            }}
-                        />
-                        {showSearch && searchTerm && (
-                            <button
-                                onClick={() => setSearchTerm('')}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '16px',
-                                    color: colors.textMuted,
-                                    padding: '0 4px',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
-                            >
-                                ×
-                            </button>
-                        )}
-                    </div>
+                    )}
                 </div>
+            </div>
+
+            {/* Main Content */}
+            <div style={{ maxWidth: '100%' }}>
 
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
@@ -296,7 +268,7 @@ export default function StudentApplicationsPage() {
                 </div>
 
                 {error && (
-                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fecaca' }}>
+                    <div style={{ color: colors.danger, backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${colors.danger}40` }}>
                         {error}
                     </div>
                 )}
@@ -332,7 +304,7 @@ export default function StudentApplicationsPage() {
                             return (
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
-                                        <tr style={{ backgroundColor: '#f8fafc' }}>
+                                        <tr style={{ backgroundColor: colors.tableHeaderBg }}>
                                             <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
                                             <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
                                             <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
@@ -347,7 +319,7 @@ export default function StudentApplicationsPage() {
                                         )).map((app, idx) => {
                                             const isPlacedRow = isPlaced && app.id === placedApplicationId;
                                             return (
-                                                <tr key={app.id} style={{ backgroundColor: isPlacedRow ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                                <tr key={app.id} style={{ backgroundColor: isPlacedRow ? 'rgba(34, 197, 94, 0.1)' : (idx % 2 === 0 ? colors.card : colors.background) }}>
                                                     <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
                                                         <button
                                                             onClick={() => { if (app.job) { setSelectedJob(app.job); setDrawerOpen(true); } }}
@@ -375,8 +347,8 @@ export default function StudentApplicationsPage() {
                                                                 disabled={withdrawingId === app.id}
                                                                 style={{
                                                                     padding: '8px 16px',
-                                                                    backgroundColor: withdrawingId === app.id ? '#f1f5f9' : '#fef2f2',
-                                                                    color: withdrawingId === app.id ? '#94a3b8' : colors.danger,
+                                                                    backgroundColor: withdrawingId === app.id ? colors.secondary : 'rgba(239, 68, 68, 0.1)',
+                                                                    color: withdrawingId === app.id ? colors.textMuted : colors.danger,
                                                                     border: 'none',
                                                                     borderRadius: '6px',
                                                                     cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
@@ -387,7 +359,7 @@ export default function StudentApplicationsPage() {
                                                                 {withdrawingId === app.id ? '...' : 'Withdraw'}
                                                             </button>
                                                         ) : (
-                                                            <span style={{ color: '#cbd5e1' }}>—</span>
+                                                            <span style={{ color: colors.textMuted, opacity: 0.5 }}>—</span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -402,7 +374,7 @@ export default function StudentApplicationsPage() {
                         Total: {applications.length} application{applications.length !== 1 ? 's' : ''}
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* Job Description Drawer */}
             <JobDescriptionDrawer

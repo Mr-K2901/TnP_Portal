@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import { isLoggedIn, getUserRole } from '@/lib/auth';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ProfileResponse {
     user_id: string;
@@ -34,24 +35,8 @@ interface Application {
     } | null;
 }
 
-// Modern color palette (matching admin)
-const colors = {
-    primary: '#4f46e5',
-    primaryHover: '#4338ca',
-    secondary: '#64748b',
-    success: '#10b981',
-    danger: '#ef4444',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    headerBg: '#1e293b',
-};
-
 export default function StudentHomePage() {
+    const { colors } = useTheme();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -97,11 +82,6 @@ export default function StudentHomePage() {
         }
     };
 
-    const handleLogout = () => {
-        removeToken();
-        router.push('/login');
-    };
-
     // Stats derived from applications
     const appliedCount = applications.length;
     const shortlistedCount = applications.filter(a => a.status === 'SHORTLISTED').length;
@@ -117,26 +97,18 @@ export default function StudentHomePage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-            {/* Header */}
-            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
-                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="/student" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Home</a>
-                        <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
-                        <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
-                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
-                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
-                    </nav>
-                </div>
-            </header>
+        <div style={{ padding: '40px' }}>
+            {/* Page Header */}
+            <div style={{ marginBottom: '32px' }}>
+                <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Dashboard</h1>
+                <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Welcome back to your placement portal</p>
+            </div>
 
             {/* Main Content */}
-            <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+            <div style={{ maxWidth: '100%' }}>
                 {/* Welcome Banner */}
                 <div style={{
-                    background: `linear-gradient(135deg, ${colors.primary} 0%, #6366f1 100%)`,
+                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryHover} 100%)`,
                     borderRadius: '16px',
                     padding: '32px 40px',
                     marginBottom: '32px',
@@ -156,38 +128,38 @@ export default function StudentHomePage() {
                 {/* Status Card */}
                 {profile?.is_placed ? (
                     <div style={{
-                        backgroundColor: '#dcfce7',
+                        backgroundColor: 'rgba(220, 252, 231, 0.2)', // transparent green
                         borderRadius: '12px',
                         padding: '24px',
                         marginBottom: '32px',
-                        border: '1px solid #86efac',
+                        border: `1px solid ${colors.success}`,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '16px'
                     }}>
                         <div style={{ fontSize: '40px' }}>🎉</div>
                         <div>
-                            <h3 style={{ margin: 0, color: '#166534', fontSize: '18px' }}>Placement Confirmed</h3>
-                            <p style={{ margin: '4px 0 0 0', color: '#15803d', fontSize: '15px' }}>
+                            <h3 style={{ margin: 0, color: colors.success, fontSize: '18px' }}>Placement Confirmed</h3>
+                            <p style={{ margin: '4px 0 0 0', color: colors.success, fontSize: '15px', opacity: 0.9 }}>
                                 You have been placed at <strong>{placementCompany || 'Company'}</strong>
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div style={{
-                        backgroundColor: '#fef3c7',
+                        backgroundColor: 'rgba(254, 243, 199, 0.2)', // transparent amber
                         borderRadius: '12px',
                         padding: '24px',
                         marginBottom: '32px',
-                        border: '1px solid #fcd34d',
+                        border: `1px solid ${colors.warning}`,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '16px'
                     }}>
                         <div style={{ fontSize: '40px' }}>🎯</div>
                         <div>
-                            <h3 style={{ margin: 0, color: '#92400e', fontSize: '18px' }}>Actively Looking</h3>
-                            <p style={{ margin: '4px 0 0 0', color: '#a16207', fontSize: '15px' }}>
+                            <h3 style={{ margin: 0, color: colors.warning, fontSize: '18px' }}>Actively Looking</h3>
+                            <p style={{ margin: '4px 0 0 0', color: colors.warning, fontSize: '15px', opacity: 0.9 }}>
                                 Keep applying! Your next opportunity is around the corner.
                             </p>
                         </div>
@@ -264,8 +236,8 @@ export default function StudentHomePage() {
                                     borderRadius: '20px',
                                     fontSize: '13px',
                                     fontWeight: 500,
-                                    backgroundColor: profile?.is_placed ? '#dcfce7' : '#fef3c7',
-                                    color: profile?.is_placed ? '#166534' : '#92400e'
+                                    backgroundColor: profile?.is_placed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                    color: profile?.is_placed ? colors.success : colors.warning
                                 }}>
                                     {profile?.is_placed ? 'Placed' : 'Active'}
                                 </span>
@@ -287,7 +259,7 @@ export default function StudentHomePage() {
                             alignItems: 'center',
                             gap: '16px'
                         }}>
-                            <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: 'rgba(79, 70, 229, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
                             <div>
                                 <h4 style={{ margin: 0, color: colors.text, fontSize: '16px', fontWeight: 600 }}>Browse Jobs</h4>
                                 <p style={{ margin: '4px 0 0 0', color: colors.textMuted, fontSize: '14px' }}>Explore {totalJobs} active openings</p>
@@ -305,7 +277,7 @@ export default function StudentHomePage() {
                             alignItems: 'center',
                             gap: '16px'
                         }}>
-                            <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📋</div>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📋</div>
                             <div>
                                 <h4 style={{ margin: 0, color: colors.text, fontSize: '16px', fontWeight: 600 }}>My Applications</h4>
                                 <p style={{ margin: '4px 0 0 0', color: colors.textMuted, fontSize: '14px' }}>Track your {appliedCount} application{appliedCount !== 1 ? 's' : ''}</p>
@@ -313,7 +285,7 @@ export default function StudentHomePage() {
                         </div>
                     </a>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

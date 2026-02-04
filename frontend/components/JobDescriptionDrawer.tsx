@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useTheme } from '@/context/ThemeContext';
 
 interface JobBrief {
     id: string;
@@ -26,17 +27,8 @@ interface JobDescriptionDrawerProps {
     onClose: () => void;
 }
 
-const colors = {
-    primary: '#4f46e5',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    overlay: 'rgba(0, 0, 0, 0.4)',
-};
-
 export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescriptionDrawerProps) {
+    const { colors, theme } = useTheme();
     const [fullJob, setFullJob] = useState<JobFull | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -76,7 +68,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                 style={{
                     position: 'fixed',
                     inset: 0,
-                    backgroundColor: colors.overlay,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
                     zIndex: 999,
                     transition: 'opacity 0.2s ease',
                 }}
@@ -97,6 +89,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                     display: 'flex',
                     flexDirection: 'column',
                     animation: 'slideIn 0.2s ease-out',
+                    borderLeft: `1px solid ${colors.border}`
                 }}
             >
                 {/* Header */}
@@ -192,7 +185,7 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                                 {fullJob?.description ? (
                                     <div style={{
                                         padding: '16px',
-                                        backgroundColor: '#f1f5f9',
+                                        backgroundColor: colors.readonlyBg,
                                         borderRadius: '10px',
                                         color: colors.text,
                                         fontSize: '14px',
@@ -231,13 +224,13 @@ export default function JobDescriptionDrawer({ job, isOpen, onClose }: JobDescri
                                             alignItems: 'center',
                                             gap: '10px',
                                             padding: '14px 18px',
-                                            backgroundColor: '#eef2ff',
+                                            backgroundColor: theme === 'dark' ? 'rgba(79, 70, 229, 0.1)' : '#eef2ff',
                                             color: colors.primary,
                                             borderRadius: '10px',
                                             textDecoration: 'none',
                                             fontWeight: 500,
                                             fontSize: '15px',
-                                            border: `1px solid #c7d2fe`,
+                                            border: `1px solid ${colors.primary}40`,
                                         }}
                                     >
                                         <span style={{ fontSize: '18px' }}>📄</span>

@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import { isLoggedIn, getUserRole } from '@/lib/auth';
 import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Job {
     id: string;
@@ -43,24 +44,8 @@ interface ProfileResponse {
     is_placed: boolean;
 }
 
-// Modern color palette
-const colors = {
-    primary: '#4f46e5',
-    primaryHover: '#4338ca',
-    secondary: '#64748b',
-    success: '#10b981',
-    danger: '#ef4444',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    headerBg: '#1e293b',
-};
-
 export default function StudentDashboardPage() {
+    const { colors } = useTheme();
     const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -142,23 +127,20 @@ export default function StudentDashboardPage() {
         }
     };
 
-    const handleLogout = () => {
-        removeToken();
-        router.push('/login');
-    };
-
     const isEligible = (job: Job): boolean => {
         if (studentCgpa === null) return false;
         return studentCgpa >= job.min_cgpa;
     };
 
     const getStatusBadge = (status: string) => {
+        // We can make these depend on theme too, but for success/danger usually standard colors are fine.
+        // Using rgba for transparency to blend with dark mode better.
         const styles: Record<string, { bg: string; color: string; label: string }> = {
-            'APPLIED': { bg: '#dbeafe', color: '#1e40af', label: 'Applied' },
-            'SHORTLISTED': { bg: '#dcfce7', color: '#166534', label: 'Shortlisted' },
-            'REJECTED': { bg: '#fef2f2', color: '#991b1b', label: 'Rejected' },
+            'APPLIED': { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', label: 'Applied' }, // blue-500
+            'SHORTLISTED': { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', label: 'Shortlisted' }, // green-500
+            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', label: 'Rejected' }, // red-500
         };
-        const style = styles[status] || { bg: '#f1f5f9', color: '#475569', label: status };
+        const style = styles[status] || { bg: colors.secondary + '20', color: colors.textMuted, label: status };
         return (
             <span style={{
                 padding: '8px 16px',
@@ -168,6 +150,7 @@ export default function StudentDashboardPage() {
                 fontWeight: 600,
                 fontSize: '13px',
                 letterSpacing: '0.3px',
+                border: `1px solid ${style.color}40`, // Add light border for better contrast
             }}>
                 {style.label}
             </span>
@@ -187,10 +170,11 @@ export default function StudentDashboardPage() {
                     <span style={{
                         padding: '8px 16px',
                         borderRadius: '6px',
-                        backgroundColor: '#fee2e2',
-                        color: '#991b1b',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        color: colors.danger,
                         fontSize: '13px',
                         fontWeight: 500,
+                        border: `1px solid ${colors.danger}40`
                     }}>
                         Not Eligible
                     </span>
@@ -204,14 +188,15 @@ export default function StudentDashboardPage() {
                 disabled={applyingTo === job.id}
                 style={{
                     padding: '10px 24px',
-                    backgroundColor: applyingTo === job.id ? '#e2e8f0' : colors.primary,
-                    color: applyingTo === job.id ? colors.textMuted : 'white',
+                    backgroundColor: applyingTo === job.id ? colors.secondary : colors.primary,
+                    color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: applyingTo === job.id ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 600,
                     minWidth: '110px',
+                    opacity: applyingTo === job.id ? 0.7 : 1,
                 }}
             >
                 {applyingTo === job.id ? 'Applying...' : 'Apply'}
@@ -239,55 +224,47 @@ export default function StudentDashboardPage() {
     const paginatedJobs = filteredJobs.slice(startIndex, startIndex + pageSize);
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-            {/* Header */}
-            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
-                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
-                        <a href="/student/dashboard" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Browse Jobs</a>
-                        <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
-                        <a href="/student/profile" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Profile</a>
-                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
-                    </nav>
+        <div style={{ padding: '40px' }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Browse Jobs</h1>
+                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Find and apply to active placement drives</p>
                 </div>
-            </header>
+                {studentCgpa !== null && (
+                    <div style={{
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        color: colors.primary,
+                        fontWeight: 600,
+                        border: `1px solid ${colors.primary}30`
+                    }}>
+                        Your CGPA: {studentCgpa.toFixed(2)}
+                    </div>
+                )}
+            </div>
 
             {/* Main Content */}
-            <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px', color: colors.text, fontWeight: 600 }}>Browse Jobs</h2>
-                    {studentCgpa !== null && (
-                        <div style={{
-                            backgroundColor: '#eef2ff',
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            fontSize: '14px',
-                            color: colors.primary,
-                            fontWeight: 500
-                        }}>
-                            Your CGPA: {studentCgpa.toFixed(2)}
-                        </div>
-                    )}
-                </div>
+            <div style={{ maxWidth: '100%' }}>
 
                 {studentCgpa === null && (
                     <div style={{
-                        backgroundColor: '#fef3c7',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
                         padding: '16px 20px',
                         borderRadius: '12px',
                         marginBottom: '24px',
                         fontSize: '14px',
                         borderLeft: `4px solid ${colors.warning}`,
-                        color: '#92400e'
+                        color: colors.warning
                     }}>
                         ⚠️ Please complete your profile with CGPA to apply for jobs.
                     </div>
                 )}
 
                 {error && (
-                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fecaca' }}>
+                    <div style={{ color: colors.danger, backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${colors.danger}40` }}>
                         {error}
                     </div>
                 )}
@@ -319,7 +296,9 @@ export default function StudentDashboardPage() {
                                 fontSize: '15px',
                                 outline: 'none',
                                 transition: 'all 0.2s',
-                                boxSizing: 'border-box'
+                                boxSizing: 'border-box',
+                                backgroundColor: colors.inputBg,
+                                color: colors.text
                             }}
                         />
                         <svg
@@ -353,7 +332,18 @@ export default function StudentDashboardPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '14px', color: colors.textMuted }}>Show:</span>
-                        <select value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }} style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, fontSize: '14px' }}>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }}
+                            style={{
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                border: `1px solid ${colors.border}`,
+                                fontSize: '14px',
+                                backgroundColor: colors.inputBg,
+                                color: colors.text
+                            }}
+                        >
                             {PAGE_SIZE_OPTIONS.map(size => <option key={size} value={size}>{size}</option>)}
                         </select>
                     </div>
@@ -366,7 +356,7 @@ export default function StudentDashboardPage() {
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                <tr style={{ backgroundColor: colors.tableHeaderBg }}>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Company</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Role</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>CTC</th>
@@ -382,7 +372,7 @@ export default function StudentDashboardPage() {
                                         <tr
                                             key={job.id}
                                             style={{
-                                                backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa',
+                                                backgroundColor: idx % 2 === 0 ? colors.card : colors.background, // Alternate stripes
                                                 opacity: !eligible && !hasApplied ? 0.7 : 1
                                             }}
                                         >
@@ -435,8 +425,8 @@ export default function StudentDashboardPage() {
                                     padding: '8px 16px',
                                     borderRadius: '6px',
                                     border: `1px solid ${colors.border}`,
-                                    backgroundColor: currentPage === 1 ? '#f1f5f9' : colors.card,
-                                    color: currentPage === 1 ? '#94a3b8' : colors.text,
+                                    backgroundColor: currentPage === 1 ? colors.background : colors.card,
+                                    color: currentPage === 1 ? colors.textMuted : colors.text,
                                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                                     fontSize: '14px'
                                 }}
@@ -450,8 +440,8 @@ export default function StudentDashboardPage() {
                                     padding: '8px 16px',
                                     borderRadius: '6px',
                                     border: `1px solid ${colors.border}`,
-                                    backgroundColor: currentPage >= totalPages ? '#f1f5f9' : colors.card,
-                                    color: currentPage >= totalPages ? '#94a3b8' : colors.text,
+                                    backgroundColor: currentPage >= totalPages ? colors.background : colors.card,
+                                    color: currentPage >= totalPages ? colors.textMuted : colors.text,
                                     cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
                                     fontSize: '14px'
                                 }}
@@ -461,7 +451,7 @@ export default function StudentDashboardPage() {
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* Job Description Drawer */}
             <JobDescriptionDrawer
@@ -469,6 +459,6 @@ export default function StudentDashboardPage() {
                 isOpen={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
             />
-        </div>
+        </div >
     );
 }

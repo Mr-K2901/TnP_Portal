@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import { isLoggedIn, getUserRole } from '@/lib/auth';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Job {
     id: string;
@@ -37,23 +38,8 @@ interface ApplicationListResponse {
     limit: number;
 }
 
-// Modern color palette
-const colors = {
-    primary: '#4f46e5',
-    secondary: '#64748b',
-    success: '#10b981',
-    danger: '#ef4444',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    headerBg: '#1e293b',
-};
-
 export default function AdminApplicationsPage() {
+    const { colors, theme } = useTheme();
     const router = useRouter();
     const searchParams = useSearchParams();
     const preselectedJobId = searchParams.get('job');
@@ -153,10 +139,6 @@ export default function AdminApplicationsPage() {
         }
     };
 
-    const handleLogout = () => {
-        removeToken();
-        router.push('/login');
-    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-IN', {
@@ -167,12 +149,12 @@ export default function AdminApplicationsPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        const styles: Record<string, { bg: string; color: string }> = {
-            'APPLIED': { bg: '#fef3c7', color: '#92400e' },
-            'SHORTLISTED': { bg: '#dcfce7', color: '#166534' },
-            'REJECTED': { bg: '#fef2f2', color: '#991b1b' },
+        const styles: Record<string, { bg: string; color: string; border: string }> = {
+            'APPLIED': { bg: 'rgba(245, 158, 11, 0.1)', color: colors.warning, border: colors.warning + '40' },
+            'SHORTLISTED': { bg: 'rgba(22, 163, 74, 0.1)', color: colors.success, border: colors.success + '40' },
+            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: colors.danger, border: colors.danger + '40' },
         };
-        const style = styles[status] || { bg: '#f1f5f9', color: '#475569' };
+        const style = styles[status] || { bg: colors.secondary + '20', color: colors.textMuted, border: colors.border };
 
         return (
             <span style={{
@@ -180,6 +162,7 @@ export default function AdminApplicationsPage() {
                 borderRadius: '20px',
                 backgroundColor: style.bg,
                 color: style.color,
+                border: `1px solid ${style.border}`,
                 fontWeight: 500,
                 fontSize: '14px',
             }}>
@@ -199,29 +182,19 @@ export default function AdminApplicationsPage() {
     const selectedJob = jobs.find(j => j.id === selectedJobId);
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-            {/* Header */}
-            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '28px', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>TnP Admin</h1>
-                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="/admin" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
-                        <a href="/admin/students" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Students</a>
-                        <a href="/admin/jobs" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Jobs</a>
-                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
-                    </nav>
+        <div style={{ padding: '40px' }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Manage Applications</h1>
+                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Review applications and manage student placements</p>
                 </div>
-            </header>
+            </div>
 
-            {/* Main Content */}
-            <main style={{ padding: '32px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ marginBottom: '24px' }}>
-                    <h2 style={{ color: colors.text, fontSize: '28px', fontWeight: 600, margin: 0 }}>Manage Applications</h2>
-                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0' }}>Review applications and manage student placements</p>
-                </div>
-
+            {/* Content Area */}
+            <div style={{ maxWidth: '100%' }}>
                 {error && (
-                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fecaca' }}>
+                    <div style={{ color: colors.danger, backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${colors.danger}40` }}>
                         {error}
                     </div>
                 )}
@@ -251,7 +224,8 @@ export default function AdminApplicationsPage() {
                                 fontSize: '14px',
                                 border: `1px solid ${colors.border}`,
                                 borderRadius: '8px',
-                                backgroundColor: '#fff',
+                                backgroundColor: colors.inputBg,
+                                color: colors.text,
                                 boxSizing: 'border-box'
                             }}
                         >
@@ -269,7 +243,7 @@ export default function AdminApplicationsPage() {
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            backgroundColor: '#fff',
+                            backgroundColor: colors.inputBg,
                             border: `1px solid ${showSearch ? colors.primary : colors.border}`,
                             borderRadius: '8px',
                             padding: '0 12px',
@@ -278,7 +252,7 @@ export default function AdminApplicationsPage() {
                             height: '40px',
                             overflow: 'hidden',
                             position: 'relative',
-                            boxShadow: showSearch ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                            boxShadow: showSearch ? `0 4px 12px ${colors.primary}20` : 'none'
                         }}>
                             <button
                                 onClick={() => setShowSearch(!showSearch)}
@@ -327,7 +301,7 @@ export default function AdminApplicationsPage() {
                 {selectedJob && (
                     <div style={{
                         padding: '16px 20px',
-                        backgroundColor: '#eef2ff',
+                        backgroundColor: theme === 'dark' ? 'rgba(79, 70, 229, 0.1)' : '#eef2ff',
                         borderRadius: '12px',
                         marginBottom: '20px',
                         borderLeft: `4px solid ${colors.primary}`
@@ -355,7 +329,7 @@ export default function AdminApplicationsPage() {
                     <div style={{ backgroundColor: colors.card, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                <tr style={{ backgroundColor: colors.tableHeaderBg }}>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Student</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Applied On</th>
                                     <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${colors.border}` }}>Status</th>
@@ -370,7 +344,7 @@ export default function AdminApplicationsPage() {
                                         const isProcessing = actionInProgress === app.student_id;
 
                                         return (
-                                            <tr key={app.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                            <tr key={app.id} style={{ backgroundColor: idx % 2 === 0 ? colors.card : colors.background }}>
                                                 <td style={{ padding: '16px 20px', color: colors.text, fontSize: '15px', fontWeight: 500, borderBottom: `1px solid ${colors.border}` }}>
                                                     {app.student?.email || 'Unknown'}
                                                 </td>
@@ -388,8 +362,8 @@ export default function AdminApplicationsPage() {
                                                             style={{
                                                                 padding: '10px 20px',
                                                                 minWidth: '120px',
-                                                                backgroundColor: isProcessing ? '#f1f5f9' : '#fef2f2',
-                                                                color: isProcessing ? '#94a3b8' : colors.danger,
+                                                                backgroundColor: isProcessing ? colors.secondary : 'rgba(239, 68, 68, 0.1)',
+                                                                color: isProcessing ? '#fff' : colors.danger,
                                                                 border: 'none',
                                                                 borderRadius: '6px',
                                                                 cursor: isProcessing ? 'not-allowed' : 'pointer',
@@ -406,8 +380,8 @@ export default function AdminApplicationsPage() {
                                                             style={{
                                                                 padding: '10px 20px',
                                                                 minWidth: '120px',
-                                                                backgroundColor: isProcessing ? '#f1f5f9' : '#dcfce7',
-                                                                color: isProcessing ? '#94a3b8' : '#166534',
+                                                                backgroundColor: isProcessing ? colors.secondary : 'rgba(22, 163, 74, 0.1)',
+                                                                color: isProcessing ? '#fff' : colors.success,
                                                                 border: 'none',
                                                                 borderRadius: '6px',
                                                                 cursor: isProcessing ? 'not-allowed' : 'pointer',
@@ -430,7 +404,7 @@ export default function AdminApplicationsPage() {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
         </div>
     );
 }

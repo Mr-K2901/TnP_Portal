@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { isLoggedIn, getUserRole, removeToken } from '@/lib/auth';
+import { isLoggedIn, getUserRole } from '@/lib/auth';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ProfileResponse {
     user_id: string;
@@ -15,23 +16,8 @@ interface ProfileResponse {
     is_placed: boolean;
 }
 
-const colors = {
-    primary: '#4f46e5',
-    primaryHover: '#4338ca',
-    secondary: '#64748b',
-    success: '#10b981',
-    danger: '#ef4444',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    background: '#f8fafc',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    text: '#1e293b',
-    textMuted: '#64748b',
-    headerBg: '#1e293b',
-};
-
 export default function StudentProfilePage() {
+    const { colors } = useTheme();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -103,11 +89,6 @@ export default function StudentProfilePage() {
         }
     };
 
-    const handleLogout = () => {
-        removeToken();
-        router.push('/login');
-    };
-
     if (loading) {
         return (
             <div style={{ minHeight: '100vh', backgroundColor: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
@@ -122,58 +103,51 @@ export default function StudentProfilePage() {
                 {label}
             </label>
             <div style={{ fontSize: '21px', color: colors.text, fontWeight: 500 }}>
-                {value || <span style={{ color: '#cbd5e1', fontWeight: 400 }}>No data provided</span>}
+                {value || <span style={{ color: colors.textMuted, opacity: 0.5, fontWeight: 400 }}>No data provided</span>}
             </div>
         </div>
     );
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-            <header style={{ backgroundColor: colors.headerBg, padding: '16px 40px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ color: '#fff', fontSize: '20px', margin: 0, fontWeight: 600 }}>TnP Portal</h1>
-                    <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <a href="/student" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</a>
-                        <a href="/student/dashboard" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse Jobs</a>
-                        <a href="/student/applications" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>My Applications</a>
-                        <a href="/student/profile" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Profile</a>
-                        <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #475569', color: '#94a3b8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
-                    </nav>
+        <div style={{ padding: '40px' }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div>
+                    <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>My Profile</h1>
+                    <p style={{ color: colors.textMuted, margin: '4px 0 0 0', fontSize: '14px' }}>Manage your personal and academic details</p>
                 </div>
-            </header>
+                {!isEditing && (
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        style={{
+                            padding: '10px 24px',
+                            backgroundColor: colors.primary,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+                        }}
+                    >
+                        Edit Profile
+                    </button>
+                )}
+            </div>
 
-            <main style={{ padding: '60px 20px', maxWidth: '900px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <h2 style={{ margin: 0, fontSize: '28px', color: colors.text, fontWeight: 700, letterSpacing: '-0.02em' }}>Student Profile</h2>
-                    {!isEditing && (
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            style={{
-                                padding: '10px 24px',
-                                backgroundColor: colors.primary,
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '10px',
-                                fontSize: '20px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
-                            }}
-                        >
-                            Edit Profile
-                        </button>
-                    )}
-                </div>
+            {/* Main Content */}
+            <div style={{ maxWidth: '800px' }}>
 
                 {error && (
-                    <div style={{ color: colors.danger, backgroundColor: '#fef2f2', padding: '16px', borderRadius: '12px', marginBottom: '32px', border: '1px solid #fecaca', fontSize: '19px' }}>
+                    <div style={{ color: colors.danger, backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '16px', borderRadius: '12px', marginBottom: '32px', border: `1px solid ${colors.danger}`, fontSize: '19px' }}>
                         {error}
                     </div>
                 )}
 
                 {success && (
-                    <div style={{ color: '#065f46', backgroundColor: '#ecfdf5', padding: '16px', borderRadius: '12px', marginBottom: '32px', border: '1px solid #a7f3d0', fontSize: '19px' }}>
+                    <div style={{ color: colors.success, backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '16px', borderRadius: '12px', marginBottom: '32px', border: `1px solid ${colors.success}`, fontSize: '19px' }}>
                         {success}
                     </div>
                 )}
@@ -209,7 +183,7 @@ export default function StudentProfilePage() {
                                         {profile.resume_url} ↗
                                     </a>
                                 ) : (
-                                    <span style={{ color: '#cbd5e1', fontSize: '19px' }}>No resume provided</span>
+                                    <span style={{ color: colors.textMuted, opacity: 0.5, fontSize: '19px' }}>No resume provided</span>
                                 )}
                             </div>
                         </div>
@@ -223,7 +197,7 @@ export default function StudentProfilePage() {
                                         value={formData.full_name}
                                         onChange={(e) => setFormData(p => ({ ...p, full_name: e.target.value }))}
                                         required
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: colors.inputBg, color: colors.text, boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -234,7 +208,7 @@ export default function StudentProfilePage() {
                                         value={formData.department}
                                         onChange={(e) => setFormData(p => ({ ...p, department: e.target.value }))}
                                         placeholder="e.g. Engineering"
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: colors.inputBg, color: colors.text, boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -246,7 +220,7 @@ export default function StudentProfilePage() {
                                         onChange={(e) => setFormData(p => ({ ...p, branch: e.target.value }))}
                                         required
                                         placeholder="e.g. CSE"
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: colors.inputBg, color: colors.text, boxSizing: 'border-box' }}
                                     />
                                 </div>
 
@@ -260,13 +234,13 @@ export default function StudentProfilePage() {
                                         value={formData.cgpa}
                                         onChange={(e) => setFormData(p => ({ ...p, cgpa: e.target.value }))}
                                         required
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: colors.inputBg, color: colors.text, boxSizing: 'border-box' }}
                                     />
                                 </div>
 
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '10px', fontSize: '15px', fontWeight: 700, color: colors.text, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Placement Status</label>
-                                    <div style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', backgroundColor: '#f5f5f5', color: colors.textMuted, cursor: 'not-allowed', boxSizing: 'border-box' }}>
+                                    <div style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', backgroundColor: colors.readonlyBg, color: colors.textMuted, cursor: 'not-allowed', boxSizing: 'border-box' }}>
                                         {profile?.is_placed ? 'Placed' : 'Seeking Opportunity'} (Admin Only)
                                     </div>
                                 </div>
@@ -278,7 +252,7 @@ export default function StudentProfilePage() {
                                         value={formData.resume_url}
                                         onChange={(e) => setFormData(p => ({ ...p, resume_url: e.target.value }))}
                                         placeholder="https://drive.google.com/..."
-                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: '#fcfcfc', boxSizing: 'border-box' }}
+                                        style={{ width: '100%', padding: '14px 18px', border: `1px solid ${colors.border}`, borderRadius: '12px', fontSize: '18px', outline: 'none', backgroundColor: colors.inputBg, color: colors.text, boxSizing: 'border-box' }}
                                     />
                                 </div>
                             </div>
@@ -289,7 +263,7 @@ export default function StudentProfilePage() {
                                     onClick={() => setIsEditing(false)}
                                     style={{
                                         padding: '12px 28px',
-                                        backgroundColor: '#fff',
+                                        backgroundColor: colors.inputBg,
                                         color: colors.secondary,
                                         border: `1px solid ${colors.border}`,
                                         borderRadius: '12px',
@@ -320,7 +294,7 @@ export default function StudentProfilePage() {
                         </form>
                     )}
                 </div>
-            </main>
+            </div>
         </div>
     );
 }
