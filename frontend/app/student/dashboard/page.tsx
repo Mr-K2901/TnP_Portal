@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
 import { useTheme } from '@/context/ThemeContext';
+import { ApplicationStatus, getStatusStyle } from '@/lib/applicationStatus';
 
 interface Job {
     id: string;
@@ -28,7 +29,7 @@ interface JobListResponse {
 
 interface Application {
     job_id: string;
-    status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED';
+    status: ApplicationStatus;
     job: {
         company_name: string;
         role: string;
@@ -133,14 +134,7 @@ export default function StudentDashboardPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        // We can make these depend on theme too, but for success/danger usually standard colors are fine.
-        // Using rgba for transparency to blend with dark mode better.
-        const styles: Record<string, { bg: string; color: string; label: string }> = {
-            'APPLIED': { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', label: 'Applied' }, // blue-500
-            'SHORTLISTED': { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', label: 'Shortlisted' }, // green-500
-            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', label: 'Rejected' }, // red-500
-        };
-        const style = styles[status] || { bg: colors.secondary + '20', color: colors.textMuted, label: status };
+        const style = getStatusStyle(status as ApplicationStatus, colors);
         return (
             <span style={{
                 padding: '8px 16px',
@@ -150,7 +144,7 @@ export default function StudentDashboardPage() {
                 fontWeight: 600,
                 fontSize: '13px',
                 letterSpacing: '0.3px',
-                border: `1px solid ${style.color}40`, // Add light border for better contrast
+                border: `1px solid ${style.color}40`,
             }}>
                 {style.label}
             </span>

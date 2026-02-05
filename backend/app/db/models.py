@@ -90,15 +90,24 @@ class Job(Base):
 class Application(Base):
     """
     Junction table: Student applies to Job.
-    Status flow: APPLIED → SHORTLISTED → (REJECTED or final offer outside system)
+    
+    Status Flow:
+    APPLIED → SELECTED → IN_PROCESS → INTERVIEW_SCHEDULED → SHORTLISTED → OFFER_RELEASED → PLACED
+    
+    Terminal States: REJECTED, WITHDRAWN, OFFER_DECLINED, PLACED
     """
     __tablename__ = "applications"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True)
     student_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    status = Column(Text, nullable=False, default="APPLIED")  # CHECK constraint in DB
+    status = Column(Text, nullable=False, default="APPLIED")
     applied_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Offer lifecycle fields
+    offer_released_at = Column(DateTime, nullable=True)
+    offer_deadline = Column(DateTime, nullable=True)
+    offer_responded_at = Column(DateTime, nullable=True)
     
     # Relationships
     job = relationship("Job", back_populates="applications")
@@ -106,5 +115,9 @@ class Application(Base):
     
     __table_args__ = (
         UniqueConstraint("job_id", "student_id", name="unique_job_student_application"),
-        CheckConstraint("status IN ('APPLIED', 'SHORTLISTED', 'REJECTED')", name="check_application_status"),
+        CheckConstraint(
+            "status IN ('APPLIED', 'SELECTED', 'IN_PROCESS', 'INTERVIEW_SCHEDULED', "
+            "'SHORTLISTED', 'OFFER_RELEASED', 'PLACED', 'OFFER_DECLINED', 'WITHDRAWN', 'REJECTED')",
+            name="check_application_status"
+        ),
     )

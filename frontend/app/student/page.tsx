@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import { useTheme } from '@/context/ThemeContext';
+import { ApplicationStatus } from '@/lib/applicationStatus';
 
 interface ProfileResponse {
     user_id: string;
@@ -28,7 +29,7 @@ interface JobListResponse {
 
 interface Application {
     job_id: string;
-    status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED';
+    status: ApplicationStatus;
     job: {
         company_name: string;
         role: string;
@@ -70,8 +71,10 @@ export default function StudentHomePage() {
             const appsRes = await api.get<{ applications: Application[] }>('/applications');
             setApplications(appsRes.applications);
 
-            // Find placement company
-            const placedApp = appsRes.applications.find(app => app.status === 'SHORTLISTED' && app.job);
+            // Find placement company (check for PLACED or OFFER_RELEASED status)
+            const placedApp = appsRes.applications.find(
+                app => (app.status === 'PLACED' || app.status === 'OFFER_RELEASED') && app.job
+            );
             if (placedApp && placedApp.job) {
                 setPlacementCompany(placedApp.job.company_name);
             }
@@ -84,9 +87,13 @@ export default function StudentHomePage() {
 
     // Stats derived from applications
     const appliedCount = applications.length;
-    const shortlistedCount = applications.filter(a => a.status === 'SHORTLISTED').length;
-    const rejectedCount = applications.filter(a => a.status === 'REJECTED').length;
-    const pendingCount = applications.filter(a => a.status === 'APPLIED').length;
+    const inProgressCount = applications.filter(a =>
+        ['APPLIED', 'SELECTED', 'IN_PROCESS', 'INTERVIEW_SCHEDULED', 'SHORTLISTED', 'OFFER_RELEASED'].includes(a.status)
+    ).length;
+    const placedCount = applications.filter(a => a.status === 'PLACED').length;
+    const rejectedCount = applications.filter(a =>
+        ['REJECTED', 'WITHDRAWN', 'OFFER_DECLINED'].includes(a.status)
+    ).length;
 
     if (loading) {
         return (
@@ -119,52 +126,13 @@ export default function StudentHomePage() {
                         Welcome, {profile?.full_name || 'Student'}! 👋
                     </h2>
                     <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '16px' }}>
-                        {profile?.is_placed
-                            ? `Congratulations! You've been placed at ${placementCompany || 'a company'}.`
-                            : 'Your placement journey starts here. Explore opportunities and apply!'}
+                        {profile?.is_placed && placementCompany
+                            ? `Congratulations! You've been placed at ${placementCompany}. 🎉`
+                            : profile?.is_placed
+                                ? 'Congratulations on your placement! 🎉'
+                                : 'Your placement journey starts here. Explore opportunities and apply!'}
                     </p>
                 </div>
-
-                {/* Status Card */}
-                {profile?.is_placed ? (
-                    <div style={{
-                        backgroundColor: 'rgba(220, 252, 231, 0.2)', // transparent green
-                        borderRadius: '12px',
-                        padding: '24px',
-                        marginBottom: '32px',
-                        border: `1px solid ${colors.success}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px'
-                    }}>
-                        <div style={{ fontSize: '40px' }}>🎉</div>
-                        <div>
-                            <h3 style={{ margin: 0, color: colors.success, fontSize: '18px' }}>Placement Confirmed</h3>
-                            <p style={{ margin: '4px 0 0 0', color: colors.success, fontSize: '15px', opacity: 0.9 }}>
-                                You have been placed at <strong>{placementCompany || 'your selected company'}</strong>
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <div style={{
-                        backgroundColor: 'rgba(254, 243, 199, 0.2)', // transparent amber
-                        borderRadius: '12px',
-                        padding: '24px',
-                        marginBottom: '32px',
-                        border: `1px solid ${colors.warning}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px'
-                    }}>
-                        <div style={{ fontSize: '40px' }}>🎯</div>
-                        <div>
-                            <h3 style={{ margin: 0, color: colors.warning, fontSize: '18px' }}>Actively Looking</h3>
-                            <p style={{ margin: '4px 0 0 0', color: colors.warning, fontSize: '15px', opacity: 0.9 }}>
-                                Keep applying! Your next opportunity is around the corner.
-                            </p>
-                        </div>
-                    </div>
-                )}
 
                 {/* Stats Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
@@ -195,8 +163,8 @@ export default function StudentHomePage() {
                         border: `1px solid ${colors.border}`,
                         textAlign: 'center'
                     }}>
-                        <div style={{ fontSize: '32px', fontWeight: 700, color: colors.warning }}>{pendingCount}</div>
-                        <div style={{ color: colors.textMuted, fontSize: '14px', marginTop: '4px' }}>Pending</div>
+                        <div style={{ fontSize: '32px', fontWeight: 700, color: colors.warning }}>{inProgressCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '14px', marginTop: '4px' }}>In Progress</div>
                     </div>
                     <div style={{
                         backgroundColor: colors.card,
@@ -205,8 +173,8 @@ export default function StudentHomePage() {
                         border: `1px solid ${colors.border}`,
                         textAlign: 'center'
                     }}>
-                        <div style={{ fontSize: '32px', fontWeight: 700, color: colors.success }}>{shortlistedCount}</div>
-                        <div style={{ color: colors.textMuted, fontSize: '14px', marginTop: '4px' }}>Shortlisted</div>
+                        <div style={{ fontSize: '32px', fontWeight: 700, color: colors.success }}>{placedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '14px', marginTop: '4px' }}>Placed</div>
                     </div>
                 </div>
 

@@ -264,11 +264,16 @@ def list_applications_for_job(
     query = db.query(Application).filter(Application.job_id == job_id)
     
     # Optional status filter
+    valid_statuses = [
+        "APPLIED", "SELECTED", "IN_PROCESS", "INTERVIEW_SCHEDULED",
+        "SHORTLISTED", "OFFER_RELEASED", "PLACED", "OFFER_DECLINED",
+        "WITHDRAWN", "REJECTED"
+    ]
     if status_filter:
-        if status_filter not in ["APPLIED", "SHORTLISTED", "REJECTED"]:
+        if status_filter not in valid_statuses:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid status. Must be APPLIED, SHORTLISTED, or REJECTED"
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
             )
         query = query.filter(Application.status == status_filter)
     
@@ -303,10 +308,12 @@ def update_application_status(
     db: Session = Depends(get_db)
 ):
     """
-    Update application status.
+    Update application status (LEGACY - use action endpoints instead).
     
     Requires: ADMIN role
-    Status: APPLIED, SHORTLISTED, REJECTED
+    
+    DEPRECATED: Prefer using /applications/{id}/actions/* endpoints
+    for proper state transition validation.
     """
     application = (
         db.query(Application)

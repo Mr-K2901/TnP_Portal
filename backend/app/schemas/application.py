@@ -20,7 +20,11 @@ class ApplicationCreate(BaseModel):
 
 class ApplicationStatusUpdate(BaseModel):
     """Schema for updating application status (Admin only)."""
-    status: Literal["APPLIED", "SHORTLISTED", "REJECTED"]
+    status: Literal[
+        "APPLIED", "SELECTED", "IN_PROCESS", "INTERVIEW_SCHEDULED",
+        "SHORTLISTED", "OFFER_RELEASED", "PLACED", "OFFER_DECLINED",
+        "WITHDRAWN", "REJECTED"
+    ]
 
 
 # =============================================================================

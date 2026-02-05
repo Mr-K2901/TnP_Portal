@@ -6,12 +6,13 @@ import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import JobDescriptionDrawer from '@/components/JobDescriptionDrawer';
 import { useTheme } from '@/context/ThemeContext';
+import { ApplicationStatus, getStatusStyle, TERMINAL_STATES } from '@/lib/applicationStatus';
 
 interface Application {
     id: string;
     job_id: string;
     student_id: string;
-    status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED';
+    status: ApplicationStatus;
     applied_at: string;
     job: {
         id: string;
@@ -80,7 +81,7 @@ export default function StudentApplicationsPage() {
         try {
             const response = await api.get<ApplicationListResponse>('/applications');
             setApplications(response.applications);
-            const placedApp = response.applications.find(app => app.status === 'SHORTLISTED');
+            const placedApp = response.applications.find(app => app.status === 'PLACED' || app.status === 'OFFER_RELEASED');
             if (placedApp && placedApp.job) {
                 setPlacementCompany(placedApp.job.company_name);
                 setPlacedApplicationId(placedApp.id);
@@ -98,10 +99,35 @@ export default function StudentApplicationsPage() {
         try {
             await api.patch(`/applications/${applicationId}/withdraw`, {});
             setApplications(prev => prev.map(app =>
-                app.id === applicationId ? { ...app, status: 'REJECTED' as const } : app
+                app.id === applicationId ? { ...app, status: 'WITHDRAWN' as ApplicationStatus } : app
             ));
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to withdraw');
+        } finally {
+            setWithdrawingId(null);
+        }
+    };
+
+    const handleOfferAction = async (applicationId: string, action: 'accept' | 'decline') => {
+        const actionLabel = action === 'accept' ? 'ACCEPT' : 'DECLINE';
+        if (!confirm(`Are you sure you want to ${actionLabel} this offer? This action is final.`)) return;
+
+        setWithdrawingId(applicationId); // Reuse loading state
+        try {
+            const endpoint = action === 'accept' ? 'accept-offer' : 'decline-offer';
+            const response = await api.post<Application>(`/applications/${applicationId}/actions/${endpoint}`, {});
+
+            setApplications(prev => prev.map(app =>
+                app.id === applicationId ? { ...app, status: response.status } : app
+            ));
+
+            if (action === 'accept') {
+                alert('Congratulations! Offer accepted successfully. 🎉');
+                // Refresh to update placement banner
+                fetchApplications();
+            }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : `Failed to ${action} offer`);
         } finally {
             setWithdrawingId(null);
         }
@@ -132,12 +158,7 @@ export default function StudentApplicationsPage() {
             );
         }
 
-        const styles: Record<string, { bg: string; color: string; label: string }> = {
-            'APPLIED': { bg: 'rgba(245, 158, 11, 0.1)', color: colors.warning, label: 'PENDING' },
-            'SHORTLISTED': { bg: 'rgba(16, 185, 129, 0.1)', color: colors.success, label: 'SHORTLISTED' },
-            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: colors.danger, label: 'REJECTED' },
-        };
-        const style = styles[app.status] || { bg: colors.secondary + '20', color: colors.textMuted, label: app.status };
+        const style = getStatusStyle(app.status, colors);
         return (
             <span style={{
                 padding: '8px 16px',
@@ -162,10 +183,14 @@ export default function StudentApplicationsPage() {
         );
     }
 
-    // Stats
-    const appliedCount = applications.filter(a => a.status === 'APPLIED').length;
-    const shortlistedCount = applications.filter(a => a.status === 'SHORTLISTED').length;
-    const rejectedCount = applications.filter(a => a.status === 'REJECTED').length;
+    // Stats - categorized by progress
+    const inProgressCount = applications.filter(a =>
+        ['APPLIED', 'SELECTED', 'IN_PROCESS', 'INTERVIEW_SCHEDULED', 'SHORTLISTED', 'OFFER_RELEASED'].includes(a.status)
+    ).length;
+    const placedCount = applications.filter(a => a.status === 'PLACED').length;
+    const closedCount = applications.filter(a =>
+        ['REJECTED', 'WITHDRAWN', 'OFFER_DECLINED'].includes(a.status)
+    ).length;
 
     return (
         <div style={{ padding: '40px' }}>
@@ -254,16 +279,16 @@ export default function StudentApplicationsPage() {
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
                     <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.warning }}>{appliedCount}</div>
-                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Pending</div>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.warning }}>{inProgressCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>In Progress</div>
                     </div>
                     <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.success }}>{shortlistedCount}</div>
-                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Shortlisted</div>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.success }}>{placedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Placed</div>
                     </div>
                     <div style={{ backgroundColor: colors.card, borderRadius: '10px', padding: '16px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.danger }}>{rejectedCount}</div>
-                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Rejected</div>
+                        <div style={{ fontSize: '24px', fontWeight: 700, color: colors.danger }}>{closedCount}</div>
+                        <div style={{ color: colors.textMuted, fontSize: '13px' }}>Closed</div>
                     </div>
                 </div>
 
@@ -347,19 +372,62 @@ export default function StudentApplicationsPage() {
                                                                 disabled={withdrawingId === app.id}
                                                                 style={{
                                                                     padding: '8px 16px',
-                                                                    backgroundColor: withdrawingId === app.id ? colors.secondary : 'rgba(239, 68, 68, 0.1)',
-                                                                    color: withdrawingId === app.id ? colors.textMuted : colors.danger,
-                                                                    border: 'none',
+                                                                    backgroundColor: 'transparent',
+                                                                    border: `1px solid ${colors.danger}`,
                                                                     borderRadius: '6px',
+                                                                    color: colors.danger,
                                                                     cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
-                                                                    fontSize: '14px',
-                                                                    fontWeight: 500
+                                                                    fontSize: '13px',
+                                                                    fontWeight: 600,
+                                                                    transition: 'all 0.2s ease',
+                                                                    opacity: withdrawingId === app.id ? 0.7 : 1
                                                                 }}
                                                             >
-                                                                {withdrawingId === app.id ? '...' : 'Withdraw'}
+                                                                {withdrawingId === app.id ? 'Withdrawing...' : 'Withdraw'}
                                                             </button>
+                                                        ) : app.status === 'OFFER_RELEASED' ? (
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <button
+                                                                    onClick={() => handleOfferAction(app.id, 'accept')}
+                                                                    disabled={withdrawingId === app.id}
+                                                                    style={{
+                                                                        padding: '8px 16px',
+                                                                        backgroundColor: colors.success,
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        color: '#fff',
+                                                                        cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
+                                                                        fontSize: '13px',
+                                                                        fontWeight: 600,
+                                                                        opacity: withdrawingId === app.id ? 0.7 : 1
+                                                                    }}
+                                                                >
+                                                                    Accept Offer
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleOfferAction(app.id, 'decline')}
+                                                                    disabled={withdrawingId === app.id}
+                                                                    style={{
+                                                                        padding: '8px 16px',
+                                                                        backgroundColor: 'transparent',
+                                                                        border: `1px solid ${colors.danger}`,
+                                                                        borderRadius: '6px',
+                                                                        color: colors.danger,
+                                                                        cursor: withdrawingId === app.id ? 'not-allowed' : 'pointer',
+                                                                        fontSize: '13px',
+                                                                        fontWeight: 600,
+                                                                        opacity: withdrawingId === app.id ? 0.7 : 1
+                                                                    }}
+                                                                >
+                                                                    Decline
+                                                                </button>
+                                                            </div>
                                                         ) : (
-                                                            <span style={{ color: colors.textMuted, opacity: 0.5 }}>—</span>
+                                                            <span style={{ fontSize: '13px', color: colors.textMuted }}>
+                                                                {TERMINAL_STATES.includes(app.status)
+                                                                    ? (app.status === 'PLACED' ? 'Offer Accepted ✅' : 'Application Closed')
+                                                                    : 'In Progress'}
+                                                            </span>
                                                         )}
                                                     </td>
                                                 </tr>

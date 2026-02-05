@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import { useTheme } from '@/context/ThemeContext';
+import { ApplicationStatus, getStatusStyle, ADMIN_ACTIONS, ACTION_ENDPOINTS } from '@/lib/applicationStatus';
 
 interface Job {
     id: string;
@@ -22,7 +23,7 @@ interface Application {
     id: string;
     job_id: string;
     student_id: string;
-    status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED';
+    status: ApplicationStatus;
     applied_at: string;
     student: {
         id: string;
@@ -144,6 +145,33 @@ export default function AdminApplicationsPage() {
         }
     };
 
+    // Handle Status Action (State Machine Transition)
+    const handleStatusAction = async (applicationId: string, action: string, studentName: string) => {
+        const actionLabels: Record<string, string> = {
+            'select': 'Select',
+            'start-process': 'Start Process',
+            'schedule-interview': 'Schedule Interview',
+            'shortlist': 'Shortlist',
+            'release-offer': 'Release Offer',
+            'reject': 'Reject'
+        };
+
+        if (!confirm(`${actionLabels[action] || action} ${studentName}?`)) return;
+
+        setActionInProgress(applicationId);
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/actions/${action}`, {});
+            // Update local state with new status
+            setApplications(prev => prev.map(app =>
+                app.id === applicationId ? { ...app, status: response.status } : app
+            ));
+        } catch (err) {
+            alert(err instanceof Error ? err.message : `Failed to ${action}`);
+        } finally {
+            setActionInProgress(null);
+        }
+    };
+
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-IN', {
@@ -154,12 +182,7 @@ export default function AdminApplicationsPage() {
     };
 
     const getStatusBadge = (status: string) => {
-        const styles: Record<string, { bg: string; color: string; border: string }> = {
-            'APPLIED': { bg: 'rgba(245, 158, 11, 0.1)', color: colors.warning, border: colors.warning + '40' },
-            'SHORTLISTED': { bg: 'rgba(22, 163, 74, 0.1)', color: colors.success, border: colors.success + '40' },
-            'REJECTED': { bg: 'rgba(239, 68, 68, 0.1)', color: colors.danger, border: colors.danger + '40' },
-        };
-        const style = styles[status] || { bg: colors.secondary + '20', color: colors.textMuted, border: colors.border };
+        const style = getStatusStyle(status as ApplicationStatus, colors);
 
         return (
             <span style={{
@@ -167,13 +190,43 @@ export default function AdminApplicationsPage() {
                 borderRadius: '20px',
                 backgroundColor: style.bg,
                 color: style.color,
-                border: `1px solid ${style.border}`,
+                border: `1px solid ${style.color}40`,
                 fontWeight: 500,
                 fontSize: '14px',
             }}>
-                {status}
+                {style.label}
             </span>
         );
+    };
+
+    // Get available actions for current status
+    const getAvailableActions = (status: ApplicationStatus): { action: string; label: string; color: string }[] => {
+        const actionMap: Record<string, { action: string; label: string; color: string }[]> = {
+            'APPLIED': [
+                { action: 'select', label: 'Select', color: colors.primary },
+                { action: 'reject', label: 'Reject', color: colors.danger }
+            ],
+            'SELECTED': [
+                { action: 'start-process', label: 'Start Process', color: colors.primary },
+                { action: 'reject', label: 'Reject', color: colors.danger }
+            ],
+            'IN_PROCESS': [
+                { action: 'schedule-interview', label: 'Schedule Interview', color: colors.warning },
+                { action: 'reject', label: 'Reject', color: colors.danger }
+            ],
+            'INTERVIEW_SCHEDULED': [
+                { action: 'shortlist', label: 'Shortlist', color: colors.success },
+                { action: 'reject', label: 'Reject', color: colors.danger }
+            ],
+            'SHORTLISTED': [
+                { action: 'release-offer', label: 'Release Offer', color: colors.success },
+                { action: 'reject', label: 'Reject', color: colors.danger }
+            ],
+            'OFFER_RELEASED': [
+                { action: 'reject', label: 'Revoke Offer', color: colors.danger }
+            ],
+        };
+        return actionMap[status] || [];
     };
 
     if (loading) {
@@ -382,43 +435,35 @@ export default function AdminApplicationsPage() {
                                                     {getStatusBadge(app.status)}
                                                 </td>
                                                 <td style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                                                    {isPlaced ? (
-                                                        <button
-                                                            onClick={() => app.student && handleRevokePlacement(app.student_id, app.student.email)}
-                                                            disabled={isProcessing || !app.student}
-                                                            style={{
-                                                                padding: '10px 20px',
-                                                                minWidth: '120px',
-                                                                backgroundColor: isProcessing ? colors.secondary : 'rgba(239, 68, 68, 0.1)',
-                                                                color: isProcessing ? '#fff' : colors.danger,
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                                fontSize: '15px',
-                                                                fontWeight: 500
-                                                            }}
-                                                        >
-                                                            {isProcessing ? '...' : 'Revoke'}
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => app.student && handleMarkPlaced(app.student_id, app.student.email)}
-                                                            disabled={isProcessing || !app.student}
-                                                            style={{
-                                                                padding: '10px 20px',
-                                                                minWidth: '120px',
-                                                                backgroundColor: isProcessing ? colors.secondary : 'rgba(22, 163, 74, 0.1)',
-                                                                color: isProcessing ? '#fff' : colors.success,
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                                fontSize: '15px',
-                                                                fontWeight: 500
-                                                            }}
-                                                        >
-                                                            {isProcessing ? '...' : 'Mark Placed'}
-                                                        </button>
-                                                    )}
+                                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                        {getAvailableActions(app.status).map((action) => (
+                                                            <button
+                                                                key={action.action}
+                                                                onClick={() => app.student && handleStatusAction(app.id, action.action, app.student?.profile?.full_name || app.student.email)}
+                                                                disabled={isProcessing}
+                                                                style={{
+                                                                    padding: '6px 12px',
+                                                                    backgroundColor: action.color + '20', // 20% opacity bg
+                                                                    color: action.color,
+                                                                    border: `1px solid ${action.color}`,
+                                                                    borderRadius: '6px',
+                                                                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                                    fontSize: '13px',
+                                                                    fontWeight: 500,
+                                                                    whiteSpace: 'nowrap',
+                                                                    opacity: isProcessing ? 0.7 : 1
+                                                                }}
+                                                            >
+                                                                {action.label}
+                                                            </button>
+                                                        ))}
+                                                        {(!getAvailableActions(app.status).length) && (
+                                                            <span style={{ fontSize: '13px', color: colors.textMuted }}>No actions</span>
+                                                        )}
+
+                                                        {/* Legacy Manual Override (Optional - Keep for now) */}
+                                                        {/* {isPlaced ? (...) : (...)} */}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
