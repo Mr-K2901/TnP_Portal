@@ -5,11 +5,24 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import { useTheme } from '@/context/ThemeContext';
+import { api } from '@/lib/api';
+
+interface DashboardStats {
+    activeJobs: number;
+    totalStudents: number;
+    pendingApplications: number;
+}
 
 export default function AdminHomePage() {
     const { colors } = useTheme();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
+    const [stats, setStats] = useState<DashboardStats>({
+        activeJobs: 0,
+        totalStudents: 0,
+        pendingApplications: 0
+    });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!isLoggedIn()) {
@@ -21,7 +34,29 @@ export default function AdminHomePage() {
             return;
         }
         setMounted(true);
+        fetchStats();
     }, [router]);
+
+    const fetchStats = async () => {
+        try {
+            // Use the new admin stats endpoint
+            const statsRes = await api.get<{
+                active_jobs: number;
+                total_students: number;
+                pending_applications: number;
+            }>('/admin/stats');
+
+            setStats({
+                activeJobs: statsRes.active_jobs,
+                totalStudents: statsRes.total_students,
+                pendingApplications: statsRes.pending_applications
+            });
+        } catch (err) {
+            console.error('Failed to fetch dashboard stats:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     if (!mounted) {
@@ -31,6 +66,12 @@ export default function AdminHomePage() {
             </div>
         );
     }
+
+    const statCards = [
+        { label: 'Active Jobs', value: loading ? '...' : stats.activeJobs.toString(), icon: '💼', bgColor: 'rgba(79, 70, 229, 0.1)', textColor: colors.primary, href: '/admin/jobs' },
+        { label: 'Total Students', value: loading ? '...' : stats.totalStudents.toString(), icon: '👥', bgColor: 'rgba(22, 163, 74, 0.1)', textColor: colors.success, href: '/admin/students' },
+        { label: 'Pending Applications', value: loading ? '...' : stats.pendingApplications.toString(), icon: '📝', bgColor: 'rgba(217, 119, 6, 0.1)', textColor: colors.warning, href: '/admin/applications' }
+    ];
 
     return (
         <div style={{ padding: '40px' }}>
@@ -63,11 +104,7 @@ export default function AdminHomePage() {
             {/* Content Body */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                 {/* Stat Cards */}
-                {[
-                    { label: 'Active Jobs', value: '12', icon: '💼', bgColor: 'rgba(79, 70, 229, 0.1)', textColor: colors.primary, href: '/admin/jobs' },
-                    { label: 'Total Students', value: '450', icon: '👥', bgColor: 'rgba(22, 163, 74, 0.1)', textColor: colors.success, href: '/admin/students' },
-                    { label: 'Pending Applications', value: '86', icon: '📝', bgColor: 'rgba(217, 119, 6, 0.1)', textColor: colors.warning, href: '/admin/applications' }
-                ].map((stat, i) => (
+                {statCards.map((stat, i) => (
                     <Link key={i} href={stat.href} style={{ textDecoration: 'none' }}>
                         <div style={{
                             padding: '24px',

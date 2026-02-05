@@ -28,11 +28,20 @@ app = FastAPI(
 # =============================================================================
 
 # CORS - Configure for your frontend domain in production
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["http://localhost:3000"],  # Frontend dev server
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend dev server
+    allow_origins=["*"],      # demo only
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],      # IMPORTANT
     allow_headers=["*"],
 )
 
@@ -61,3 +70,6 @@ def health_check():
 def root():
     """Root endpoint."""
     return {"message": "TnP Portal API", "docs": "/docs"}
+
+if __name__ == '__main__':
+    uvicorn.run("main:app", host='0.0.0.0', port=8000)

@@ -25,6 +25,12 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 # SCHEMAS
 # =============================================================================
 
+class DashboardStats(BaseModel):
+    active_jobs: int
+    total_students: int
+    pending_applications: int
+
+
 class StudentListItem(BaseModel):
     user_id: str
     full_name: str
@@ -54,6 +60,32 @@ class ImportSummary(BaseModel):
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
+
+@router.get("/stats", response_model=DashboardStats)
+def get_dashboard_stats(
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard statistics for admin overview.
+    
+    Requires: ADMIN role
+    
+    Returns:
+        - active_jobs: Count of jobs with is_active=True
+        - total_students: Count of students (users with role=STUDENT)
+        - pending_applications: Count of applications with status=APPLIED
+    """
+    active_jobs = db.query(func.count(Job.id)).filter(Job.is_active == True).scalar() or 0
+    total_students = db.query(func.count(User.id)).filter(User.role == "STUDENT").scalar() or 0
+    pending_applications = db.query(func.count(Application.id)).filter(Application.status == "APPLIED").scalar() or 0
+    
+    return DashboardStats(
+        active_jobs=active_jobs,
+        total_students=total_students,
+        pending_applications=pending_applications
+    )
+
 
 @router.get("/students", response_model=StudentListResponse)
 def list_students(
