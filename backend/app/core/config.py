@@ -5,6 +5,7 @@ Loads environment variables with validation using Pydantic Settings.
 
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,12 @@ class Settings(BaseSettings):
     
     # App
     DEBUG: bool = False
+    
+    # Twilio Configuration (Optional - for call campaigns)
+    TWILIO_ACCOUNT_SID: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_PHONE_NUMBER: Optional[str] = None
+    TWILIO_WEBHOOK_BASE_URL: Optional[str] = None
     
     class Config:
         env_file = ".env"

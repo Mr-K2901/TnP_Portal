@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.api import auth, jobs, applications, users, admin, actions
+from app.api import auth, jobs, applications, users, admin, actions, campaigns, webhooks
 
 settings = get_settings()
 
@@ -55,6 +55,8 @@ app.include_router(applications.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(actions.router, prefix="/api")  # State-machine actions
+app.include_router(campaigns.router, prefix="/api")  # Call campaigns
+app.include_router(webhooks.router, prefix="/api")  # Twilio webhooks
 
 # =============================================================================
 # HEALTH CHECK
@@ -72,4 +74,5 @@ def root():
     return {"message": "TnP Portal API", "docs": "/docs"}
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host='0.0.0.0', port=8000)
+    import uvicorn
+    uvicorn.run("app.main:app", host='0.0.0.0', port=8000, reload=True)

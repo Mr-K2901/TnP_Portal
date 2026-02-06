@@ -29,6 +29,7 @@ export async function apiFetch<T>(
 
     const headers: HeadersInit = {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        'ngrok-skip-browser-warning': 'true',  // Bypass ngrok warning page
         ...options.headers,
     };
 

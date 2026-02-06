@@ -36,6 +36,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar, role }: SidebarPro
                 { label: 'Jobs', icon: '💼', href: '/admin/jobs' },
                 { label: 'Applications', icon: '📝', href: '/admin/applications' },
                 { label: 'Students', icon: '👥', href: '/admin/students' },
+                { label: 'Campaigns', icon: '📞', href: '/admin/campaigns' },
             ]
         },
         {

@@ -55,6 +55,7 @@ class Profile(Base):
     cgpa = Column(Float)  # CHECK constraint in DB (0-10)
     branch = Column(Text, nullable=False)  # Course: CSE, IT, ECE, etc.
     department = Column(Text)  # Department: Engineering, Management, Science, etc.
+    phone = Column(Text, nullable=True)  # Phone number for call campaigns
     resume_url = Column(Text)
     is_placed = Column(Boolean, default=False)
     
@@ -119,5 +120,56 @@ class Application(Base):
             "status IN ('APPLIED', 'SELECTED', 'IN_PROCESS', 'INTERVIEW_SCHEDULED', "
             "'SHORTLISTED', 'OFFER_RELEASED', 'PLACED', 'OFFER_DECLINED', 'WITHDRAWN', 'REJECTED')",
             name="check_application_status"
+        ),
+    )
+
+
+class Campaign(Base):
+    """
+    Call Campaign - Admin creates campaigns to call groups of students.
+    """
+    __tablename__ = "campaigns"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(Text, nullable=False)
+    script_template = Column(Text, nullable=False)  # Message to speak
+    status = Column(Text, nullable=False, default="DRAFT")  # DRAFT, RUNNING, COMPLETED, CANCELLED
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    call_logs = relationship("CallLog", back_populates="campaign", cascade="all, delete-orphan")
+    
+    __table_args__ = (
+        CheckConstraint("status IN ('DRAFT', 'RUNNING', 'COMPLETED', 'CANCELLED')", name="check_campaign_status"),
+    )
+
+
+class CallLog(Base):
+    """
+    Individual call record within a campaign.
+    Tracks call status, recording URL, and transcription.
+    """
+    __tablename__ = "call_logs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    twilio_sid = Column(Text, nullable=True)  # Twilio's Call SID
+    status = Column(Text, nullable=False, default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, FAILED, NO_ANSWER, BUSY
+    recording_url = Column(Text, nullable=True)
+    transcription_text = Column(Text, nullable=True)
+    duration = Column(Float, nullable=True)  # Call duration in seconds
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    campaign = relationship("Campaign", back_populates="call_logs")
+    student = relationship("User")
+    
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "student_id", name="unique_campaign_student_call"),
+        CheckConstraint(
+            "status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY')",
+            name="check_call_status"
         ),
     )

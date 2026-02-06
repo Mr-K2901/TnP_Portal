@@ -60,3 +60,44 @@ CREATE INDEX idx_applications_student ON applications(student_id);
 
 ALTER TABLE users
 ADD COLUMN password_hash TEXT NOT NULL;
+
+
+--------------------------------------------------
+-- Twilio integration
+--------------------------------------------------
+-- 5. PROFILES UPDATES (Phone + Department)
+--------------------------------------------------
+ALTER TABLE profiles ADD COLUMN phone TEXT;
+ALTER TABLE profiles ADD COLUMN department TEXT;
+
+--------------------------------------------------
+-- 6. CAMPAIGNS (Admin Call Campaigns)
+--------------------------------------------------
+CREATE TABLE campaigns (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    script_template TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'RUNNING', 'COMPLETED', 'CANCELLED')),
+    created_at TIMESTAMP DEFAULT now()
+);
+
+--------------------------------------------------
+-- 7. CALL LOGS (Individual Call Records)
+--------------------------------------------------
+CREATE TABLE call_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    twilio_sid TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY')),
+    recording_url TEXT,
+    transcription_text TEXT,
+    duration FLOAT,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
+    UNIQUE (campaign_id, student_id)
+);
+
+CREATE INDEX idx_call_logs_campaign ON call_logs(campaign_id);
+CREATE INDEX idx_call_logs_student ON call_logs(student_id);
+CREATE INDEX idx_call_logs_status ON call_logs(status);
