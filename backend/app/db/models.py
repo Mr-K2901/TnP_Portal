@@ -173,3 +173,144 @@ class CallLog(Base):
             name="check_call_status"
         ),
     )
+
+
+# =============================================================================
+# EMAIL CAMPAIGN MODELS
+# =============================================================================
+
+class EmailTemplate(Base):
+    """
+    Email templates - both pre-built and custom.
+    Pre-built templates have is_prebuilt=True and cannot be deleted.
+    """
+    __tablename__ = "email_templates"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(Text, nullable=False)
+    subject = Column(Text, nullable=False)
+    body_html = Column(Text, nullable=False)
+    body_text = Column(Text, nullable=True)  # Plain text version
+    variables = Column(Text, nullable=True)  # Comma-separated list of variable names
+    is_prebuilt = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EmailCampaign(Base):
+    """
+    Email campaign - similar to call Campaign but for emails.
+    """
+    __tablename__ = "email_campaigns"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(Text, nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("email_templates.id"), nullable=True)
+    subject = Column(Text, nullable=False)
+    body_html = Column(Text, nullable=False)
+    status = Column(Text, nullable=False, default="DRAFT")  # DRAFT, RUNNING, COMPLETED, CANCELLED
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    template = relationship("EmailTemplate")
+    email_logs = relationship("EmailLog", back_populates="campaign", cascade="all, delete-orphan")
+    
+    __table_args__ = (
+        CheckConstraint("status IN ('DRAFT', 'RUNNING', 'COMPLETED', 'CANCELLED')", name="check_email_campaign_status"),
+    )
+
+
+class EmailLog(Base):
+    """
+    Individual email record within a campaign.
+    Tracks send status per recipient.
+    """
+    __tablename__ = "email_logs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("email_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(Text, nullable=False, default="PENDING")  # PENDING, SENDING, SENT, FAILED
+    error_message = Column(Text, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    campaign = relationship("EmailCampaign", back_populates="email_logs")
+    student = relationship("User")
+    
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "student_id", name="unique_email_campaign_student"),
+        CheckConstraint(
+            "status IN ('PENDING', 'SENDING', 'SENT', 'FAILED')",
+            name="check_email_status"
+        ),
+    )
+
+
+# =============================================================================
+# WHATSAPP CAMPAIGN MODELS
+# =============================================================================
+
+class WhatsAppTemplate(Base):
+    """
+    WhatsApp templates.
+    """
+    __tablename__ = "whatsapp_templates"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(Text, nullable=False)
+    body_text = Column(Text, nullable=False)
+    variables = Column(Text, nullable=True)  # Comma-separated list of variable names
+    is_prebuilt = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WhatsAppCampaign(Base):
+    """
+    WhatsApp campaign.
+    """
+    __tablename__ = "whatsapp_campaigns"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(Text, nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("whatsapp_templates.id"), nullable=True)
+    body_text = Column(Text, nullable=False)
+    status = Column(Text, nullable=False, default="DRAFT")  # DRAFT, RUNNING, COMPLETED, CANCELLED
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    template = relationship("WhatsAppTemplate")
+    whatsapp_logs = relationship("WhatsAppLog", back_populates="campaign", cascade="all, delete-orphan")
+    
+    __table_args__ = (
+        CheckConstraint("status IN ('DRAFT', 'RUNNING', 'COMPLETED', 'CANCELLED')", name="check_whatsapp_campaign_status"),
+    )
+
+
+class WhatsAppLog(Base):
+    """
+    Individual WhatsApp record within a campaign.
+    """
+    __tablename__ = "whatsapp_logs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("whatsapp_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(Text, nullable=False, default="PENDING")  # PENDING, SENT, FAILED, DELIVERED, READ
+    message_sid = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    campaign = relationship("WhatsAppCampaign", back_populates="whatsapp_logs")
+    student = relationship("User")
+    
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "student_id", name="unique_whatsapp_campaign_student"),
+        CheckConstraint(
+            "status IN ('PENDING', 'SENT', 'FAILED', 'DELIVERED', 'READ')",
+            name="check_whatsapp_status"
+        ),
+    )
+

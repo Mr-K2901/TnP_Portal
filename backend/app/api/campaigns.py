@@ -341,3 +341,86 @@ def retry_failed_calls(
     
     return {"message": f"Retrying {updated} calls", "retried_count": updated}
 
+
+@router.put("/{campaign_id}")
+def update_campaign(
+    campaign_id: UUID,
+    payload: CampaignCreate, # Reusing Create schema
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a call campaign.
+    Refigures campaign details. Only updates metadata for running campaigns.
+    Resets recipients if DRAFT.
+    """
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+        
+    campaign.title = payload.title
+    campaign.script_template = payload.script_template
+    
+    if campaign.status == "DRAFT":
+        # Full update: recreate logs
+        db.query(CallLog).filter(CallLog.campaign_id == campaign.id).delete()
+        for student_id in payload.student_ids:
+            # Need to fetch student details for CallLog... wait, CallLog needs email/name?
+            # Existing Create logic:
+            # student = db.query(User).filter(User.id == student_id).first()
+            # This is slow for updates. But necessary.
+            # actually CallLog model stores name/email snapshot.
+            student = db.query(User).options(joinedload(User.profile)).filter(User.id == student_id).first()
+            if student:
+                log = CallLog(
+                    campaign_id=campaign.id,
+                    student_id=student.id,
+                    student_name=student.profile.full_name if student.profile else "Unknown",
+                    student_email=student.email,
+                    status="PENDING"
+                )
+                db.add(log)
+    
+    db.commit()
+    db.refresh(campaign)
+    
+    # Return matched response format
+    # CampaignResponse expects (id, title, script_template, status, created_at, total_calls, completed_calls)
+    total = db.query(CallLog).filter(CallLog.campaign_id == campaign.id).count()
+    completed = db.query(CallLog).filter(CallLog.campaign_id == campaign.id, CallLog.status == "COMPLETED").count()
+    
+    return CampaignResponse(
+        id=str(campaign.id),
+        title=campaign.title,
+        script_template=campaign.script_template,
+        status=campaign.status,
+        created_at=campaign.created_at.isoformat(),
+        total_calls=total,
+        completed_calls=completed
+    )
+
+
+@router.delete("/{campaign_id}")
+def delete_campaign(
+    campaign_id: UUID,
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a call campaign.
+    Cannot delete if status is COMPLETED.
+    """
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    if campaign.status == "COMPLETED":
+        raise HTTPException(status_code=400, detail="Cannot delete a completed campaign. Archive it instead.")
+    
+    db.delete(campaign)
+    db.commit()
+    
+    return {"message": "Campaign deleted successfully"}
+

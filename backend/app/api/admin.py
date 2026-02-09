@@ -39,6 +39,7 @@ class StudentListItem(BaseModel):
     department: Optional[str]  # Department (Engineering, Management, etc.)
     cgpa: Optional[float]
     is_placed: bool
+    phone: Optional[str]
     applications_count: int
     placed_company: Optional[str]
 
@@ -120,7 +121,8 @@ def list_students(
         Profile.branch,
         Profile.department,
         Profile.cgpa,
-        Profile.is_placed
+        Profile.is_placed,
+        Profile.phone
     ).join(
         Profile, User.id == Profile.user_id
     ).filter(
@@ -172,6 +174,7 @@ def list_students(
             department=student.department,
             cgpa=student.cgpa,
             is_placed=student.is_placed,
+            phone=student.phone,
             applications_count=applications_count,
             placed_company=placed_company
         ))

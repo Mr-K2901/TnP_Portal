@@ -49,7 +49,19 @@ export async function apiFetch<T>(
     // Handle non-OK responses
     if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(error.detail || `HTTP ${response.status}`);
+        // Handle different error formats (string, object, array)
+        let errorMessage = `HTTP ${response.status}`;
+        if (error.detail) {
+            if (typeof error.detail === 'string') {
+                errorMessage = error.detail;
+            } else if (Array.isArray(error.detail)) {
+                // FastAPI validation errors are arrays
+                errorMessage = error.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join(', ');
+            } else if (typeof error.detail === 'object') {
+                errorMessage = error.detail.msg || JSON.stringify(error.detail);
+            }
+        }
+        throw new Error(errorMessage);
     }
 
     // Handle 204 No Content

@@ -133,4 +133,32 @@ async def status_webhook(
             pass
     
     db.commit()
+    
+    # Check if all calls in the campaign are done - auto-complete campaign
+    check_campaign_completion(db, call_log.campaign_id)
+    
     return {"status": "ok"}
+
+
+def check_campaign_completion(db: Session, campaign_id):
+    """
+    Check if all calls in a campaign have reached terminal states.
+    If so, mark the campaign as COMPLETED.
+    """
+    from app.db.models import Campaign
+    
+    # Terminal states - calls are "done" in these states
+    terminal_statuses = ["COMPLETED", "FAILED", "BUSY", "NO_ANSWER"]
+    
+    # Count pending/in-progress calls
+    pending_count = db.query(CallLog).filter(
+        CallLog.campaign_id == campaign_id,
+        ~CallLog.status.in_(terminal_statuses)
+    ).count()
+    
+    if pending_count == 0:
+        campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+        if campaign and campaign.status == "RUNNING":
+            campaign.status = "COMPLETED"
+            db.commit()
+

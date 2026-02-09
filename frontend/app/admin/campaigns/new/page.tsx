@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getUserRole } from '@/lib/auth';
 import { useTheme } from '@/context/ThemeContext';
 import { api } from '@/lib/api';
@@ -28,6 +28,10 @@ export default function NewCampaignPage() {
     const [branchFilter, setBranchFilter] = useState('');
     const [placedFilter, setPlacedFilter] = useState<string>('all');
 
+    // Edit Mode
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('edit_id');
+
     // Campaign Config
     const [title, setTitle] = useState('');
     const [script, setScript] = useState(
@@ -40,7 +44,31 @@ export default function NewCampaignPage() {
             return;
         }
         fetchStudents();
-    }, [router]);
+        if (editId) {
+            fetchCampaignDetails(editId);
+        }
+    }, [router, editId]);
+
+    const fetchCampaignDetails = async (id: string) => {
+        try {
+            const res = await api.get<any>(`/campaigns/${id}`); // Using any for brevity vs Detail interface
+            // res.campaign contains details, res.call_logs contains students
+            setTitle(res.campaign.title);
+            setScript(res.campaign.script_template);
+
+            // Extract student IDs from logs
+            // Ideally we should have a list of student IDs 
+            const studentIds = new Set(res.call_logs.map((log: any) => log.student_id));
+            setSelectedStudents(studentIds as Set<string>);
+
+            // Note: We might be selecting students who are not in 'students' list 
+            // if we are lazy loading student list. 
+            // But fetchStudents loads all, so it should be fine.
+        } catch (err) {
+            console.error('Failed to load campaign:', err);
+            alert('Failed to load campaign details for editing');
+        }
+    };
 
     const fetchStudents = async () => {
         try {
@@ -93,14 +121,24 @@ export default function NewCampaignPage() {
 
         setCreating(true);
         try {
-            await api.post('/campaigns', {
-                title: title.trim(),
-                script_template: script.trim(),
-                student_ids: Array.from(selectedStudents)
-            });
+            if (editId) {
+                // Update
+                await api.put(`/campaigns/${editId}`, {
+                    title: title.trim(),
+                    script_template: script.trim(),
+                    student_ids: Array.from(selectedStudents)
+                });
+            } else {
+                // Create
+                await api.post('/campaigns', {
+                    title: title.trim(),
+                    script_template: script.trim(),
+                    student_ids: Array.from(selectedStudents)
+                });
+            }
             router.push('/admin/campaigns');
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to create campaign');
+            alert(err instanceof Error ? err.message : 'Failed to save campaign');
             setCreating(false);
         }
     };
@@ -123,7 +161,9 @@ export default function NewCampaignPage() {
                 >
                     ← Back to Campaigns
                 </button>
-                <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0 }}>New Call Campaign</h1>
+                <h1 style={{ color: colors.text, fontSize: '28px', fontWeight: 700, margin: 0 }}>
+                    {editId ? 'Edit Call Campaign' : 'New Call Campaign'}
+                </h1>
             </div>
 
             {/* Steps */}
@@ -318,7 +358,7 @@ export default function NewCampaignPage() {
                                 opacity: creating ? 0.7 : 1
                             }}
                         >
-                            {creating ? 'Creating...' : 'Create Campaign'}
+                            {creating ? 'Saving...' : (editId ? 'Update Campaign' : 'Create Campaign')}
                         </button>
                     </div>
                 </div>

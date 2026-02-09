@@ -29,7 +29,15 @@ class Settings(BaseSettings):
     TWILIO_ACCOUNT_SID: Optional[str] = None
     TWILIO_AUTH_TOKEN: Optional[str] = None
     TWILIO_PHONE_NUMBER: Optional[str] = None
+    TWILIO_WHATSAPP_NUMBER: Optional[str] = None
     TWILIO_WEBHOOK_BASE_URL: Optional[str] = None
+    
+    # SMTP Configuration (Optional - for email campaigns)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_NAME: str = "TnP Portal"
     
     class Config:
         env_file = ".env"

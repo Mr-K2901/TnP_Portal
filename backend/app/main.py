@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.api import auth, jobs, applications, users, admin, actions, campaigns, webhooks
+from app.api import auth, jobs, applications, users, admin, actions, campaigns, webhooks, email_templates, email_campaigns, whatsapp_campaigns
 
 settings = get_settings()
 
@@ -57,6 +57,9 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(actions.router, prefix="/api")  # State-machine actions
 app.include_router(campaigns.router, prefix="/api")  # Call campaigns
 app.include_router(webhooks.router, prefix="/api")  # Twilio webhooks
+app.include_router(email_templates.router, prefix="/api")  # Email templates
+app.include_router(email_campaigns.router, prefix="/api")  # Email campaigns
+app.include_router(whatsapp_campaigns.router, prefix="/api")  # WhatsApp campaigns
 
 # =============================================================================
 # HEALTH CHECK

@@ -20,6 +20,7 @@ class TwilioService:
         self.account_sid = settings.TWILIO_ACCOUNT_SID
         self.auth_token = settings.TWILIO_AUTH_TOKEN
         self.from_number = settings.TWILIO_PHONE_NUMBER
+        self.whatsapp_from_number = settings.TWILIO_WHATSAPP_NUMBER or settings.TWILIO_PHONE_NUMBER
         self.webhook_base_url = settings.TWILIO_WEBHOOK_BASE_URL or "http://localhost:8000"
         
         if self.account_sid and self.auth_token:
@@ -84,6 +85,58 @@ class TwilioService:
         response.say("Thank you. Your response has been recorded.", voice="alice", language="en-IN")
         response.hangup()
         return str(response)
+
+    def send_whatsapp_message(self, to_number: str, body: str) -> tuple[bool, Optional[str]]:
+        """
+        Send a WhatsApp message.
+        Handles 'whatsapp:' prefix automatically.
+        """
+        if not self.is_configured():
+            print("Twilio is not configured")
+            return False, "Twilio not configured"
+        
+        # Clean spaces from keys
+        to_number = to_number.replace(" ", "").strip()
+
+        # Ensure whatsapp: prefix
+        if not to_number.startswith("whatsapp:"):
+            to_number = f"whatsapp:{to_number}"
+            
+        from_number = self.whatsapp_from_number.replace(" ", "").strip()
+        if not from_number.startswith("whatsapp:"):
+            from_number = f"whatsapp:{from_number}"
+            
+        try:
+            message = self.client.messages.create(
+                body=body,
+                from_=from_number,
+                to=to_number
+            )
+            return True, message.sid
+        except Exception as e:
+            error_msg = str(e)
+            print(f"WhatsApp send failed: {error_msg}")
+            
+            # Rate limit handling (code 63038) is handled by the caller/background task
+            # by checking the error message or code if needed.
+            return False, error_msg
+
+    def get_message_status(self, message_sid: str) -> dict:
+        """
+        Fetch the current status of a message from Twilio.
+        """
+        if not self.is_configured():
+            return {"status": "unknown", "error": "Twilio not configured"}
+            
+        try:
+            msg = self.client.messages(message_sid).fetch()
+            return {
+                "status": msg.status,
+                "error_code": msg.error_code,
+                "error_message": msg.error_message
+            }
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
 
 
 # Singleton instance
