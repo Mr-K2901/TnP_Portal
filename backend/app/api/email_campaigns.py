@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import List, Optional
-from pydantic import BaseModel
+from app.schemas.email_campaign import EmailCampaignCreate, EmailCampaignResponse, EmailLogResponse, EmailCampaignDetailResponse
 from uuid import UUID
 from datetime import datetime
 import time
@@ -20,48 +20,6 @@ from app.services.email_service import email_service
 
 router = APIRouter(prefix="/email-campaigns", tags=["Email Campaigns"])
 
-
-# =============================================================================
-# SCHEMAS
-# =============================================================================
-
-class EmailCampaignCreate(BaseModel):
-    title: str
-    template_id: Optional[str] = None
-    subject: str
-    body_html: str
-    student_ids: List[str]
-
-
-class EmailCampaignResponse(BaseModel):
-    id: str
-    title: str
-    subject: str
-    status: str
-    created_at: str
-    total_emails: int
-    sent_emails: int
-    failed_emails: int
-    
-    class Config:
-        from_attributes = True
-
-
-class EmailLogResponse(BaseModel):
-    id: str
-    student_name: str
-    student_email: str
-    status: str
-    error_message: Optional[str]
-    sent_at: Optional[str]
-    
-    class Config:
-        from_attributes = True
-
-
-class EmailCampaignDetailResponse(BaseModel):
-    campaign: EmailCampaignResponse
-    email_logs: List[EmailLogResponse]
 
 
 # =============================================================================

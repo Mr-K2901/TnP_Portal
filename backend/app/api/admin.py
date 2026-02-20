@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
-from pydantic import BaseModel
+from app.schemas.admin import DashboardStats, StudentListItem, StudentListResponse, ImportSummary
 import csv
 import io
 import uuid
@@ -21,41 +21,6 @@ from app.core.security import require_admin, hash_password
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-# =============================================================================
-# SCHEMAS
-# =============================================================================
-
-class DashboardStats(BaseModel):
-    active_jobs: int
-    total_students: int
-    pending_applications: int
-
-
-class StudentListItem(BaseModel):
-    user_id: str
-    full_name: str
-    email: str
-    branch: str  # Course (CSE, IT, ECE, etc.)
-    department: Optional[str]  # Department (Engineering, Management, etc.)
-    cgpa: Optional[float]
-    is_placed: bool
-    phone: Optional[str]
-    applications_count: int
-    placed_company: Optional[str]
-
-    class Config:
-        from_attributes = True
-
-
-class StudentListResponse(BaseModel):
-    students: List[StudentListItem]
-    total: int
-
-
-class ImportSummary(BaseModel):
-    success_count: int
-    failure_count: int
-    errors: List[str]
 
 
 # =============================================================================

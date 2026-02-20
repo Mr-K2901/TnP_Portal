@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Background
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
-from pydantic import BaseModel
+from app.schemas.campaign import CampaignCreate, CampaignResponse, CallLogResponse, CampaignDetailResponse
 from uuid import UUID
 
 from app.db.session import get_db
@@ -17,46 +17,6 @@ from app.services.twilio_service import twilio_service
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 
-
-# =============================================================================
-# SCHEMAS
-# =============================================================================
-
-class CampaignCreate(BaseModel):
-    title: str
-    script_template: str
-    student_ids: List[str]  # List of student UUIDs
-
-
-class CampaignResponse(BaseModel):
-    id: str
-    title: str
-    script_template: str
-    status: str
-    created_at: str
-    total_calls: int
-    completed_calls: int
-    
-    class Config:
-        from_attributes = True
-
-
-class CallLogResponse(BaseModel):
-    id: str
-    student_name: str
-    student_email: str
-    status: str
-    recording_url: Optional[str]
-    transcription_text: Optional[str]
-    duration: Optional[float]
-    
-    class Config:
-        from_attributes = True
-
-
-class CampaignDetailResponse(BaseModel):
-    campaign: CampaignResponse
-    call_logs: List[CallLogResponse]
 
 
 # =============================================================================

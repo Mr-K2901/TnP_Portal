@@ -87,3 +87,9 @@ class UserWithProfile(UserBase):
     """User with optional profile (for students)."""
     profile: Optional[ProfileResponse] = None
 
+
+class ChangePassword(BaseModel):
+    """Schema for changing user password."""
+    current_password: str
+    new_password: str = Field(..., min_length=8, description="Minimum 8 characters")
+

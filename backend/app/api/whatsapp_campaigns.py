@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import List, Optional
-from pydantic import BaseModel
+from app.schemas.whatsapp_campaign import WhatsAppCampaignCreate, WhatsAppCampaignResponse, WhatsAppLogResponse, WhatsAppCampaignDetailResponse
 from uuid import UUID
 from datetime import datetime
 import time
@@ -21,47 +21,6 @@ from app.services.twilio_service import twilio_service
 
 router = APIRouter(prefix="/whatsapp-campaigns", tags=["WhatsApp Campaigns"])
 
-
-# =============================================================================
-# SCHEMAS
-# =============================================================================
-
-class WhatsAppCampaignCreate(BaseModel):
-    title: str
-    template_id: Optional[str] = None
-    body_text: str
-    student_ids: List[str]
-
-
-class WhatsAppCampaignResponse(BaseModel):
-    id: str
-    title: str
-    body_text: str
-    status: str
-    created_at: str
-    total_messages: int
-    sent_messages: int
-    failed_messages: int
-    
-    class Config:
-        from_attributes = True
-
-
-class WhatsAppLogResponse(BaseModel):
-    id: str
-    student_name: str
-    student_phone: str
-    status: str
-    error_message: Optional[str]
-    sent_at: Optional[str]
-    
-    class Config:
-        from_attributes = True
-
-
-class WhatsAppCampaignDetailResponse(BaseModel):
-    campaign: WhatsAppCampaignResponse
-    logs: List[WhatsAppLogResponse]
 
 
 # =============================================================================

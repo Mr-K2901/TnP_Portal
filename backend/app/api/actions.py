@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from app.schemas.application import OfferReleaseRequest
 from typing import Optional
 
 from app.db.session import get_db
@@ -88,13 +88,7 @@ def get_application_or_404(db: Session, application_id: UUID, load_student: bool
     return app
 
 
-# =============================================================================
-# REQUEST SCHEMAS
-# =============================================================================
 
-class OfferReleaseRequest(BaseModel):
-    """Request body for releasing an offer."""
-    deadline_days: int = 7  # Default 7 days to respond
 
 
 # =============================================================================

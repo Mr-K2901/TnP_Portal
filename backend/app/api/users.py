@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.db.session import get_db
-from app.db.models import Profile
-from app.schemas.user import ProfileResponse, ProfileUpdate
-from app.core.security import require_student, require_admin
+from app.db.models import Profile, User
+from app.schemas.user import ProfileResponse, ProfileUpdate, ChangePassword
+from app.core.security import require_student, require_admin, get_current_user, verify_password, hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -127,3 +127,52 @@ def mark_student_placed(
     
     return profile
 
+
+# =============================================================================
+# CHANGE PASSWORD (Any authenticated user)
+# =============================================================================
+
+@router.post("/me/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    payload: ChangePassword,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change current user's password.
+    
+    Requires: Any authenticated user (STUDENT or ADMIN)
+    
+    Validates:
+        - Current password is correct
+        - New password is different from current
+        - New password meets minimum length (8 chars, enforced by schema)
+    """
+    user_id = current_user["sub"]
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Verify current password
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Prevent setting same password
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password"
+        )
+    
+    # Hash and save
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}

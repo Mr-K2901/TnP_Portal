@@ -102,3 +102,8 @@ class AdminApplicationListResponse(BaseModel):
     total: int
     page: int
     limit: int
+
+
+class OfferReleaseRequest(BaseModel):
+    """Request body for releasing an offer."""
+    deadline_days: int = 7  # Default 7 days to respond

@@ -6,7 +6,7 @@ Manage pre-built and custom email templates.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel
+from app.schemas.email_template import TemplateCreate, TemplateResponse, TemplateListResponse
 from uuid import UUID
 
 from app.db.session import get_db
@@ -16,33 +16,6 @@ from app.services.email_service import PREBUILT_TEMPLATES
 
 router = APIRouter(prefix="/email-templates", tags=["Email Templates"])
 
-
-# =============================================================================
-# SCHEMAS
-# =============================================================================
-
-class TemplateCreate(BaseModel):
-    name: str
-    subject: str
-    body_html: str
-    variables: Optional[str] = None  # Comma-separated
-
-
-class TemplateResponse(BaseModel):
-    id: str
-    name: str
-    subject: str
-    body_html: str
-    variables: Optional[str]
-    is_prebuilt: bool
-    
-    class Config:
-        from_attributes = True
-
-
-class TemplateListResponse(BaseModel):
-    templates: List[TemplateResponse]
-    total: int
 
 
 # =============================================================================
